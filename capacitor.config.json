@@ -1,0 +1,8 @@
+{
+  "appId": "com.cyrus.ai",
+  "appName": "Cyrus Voice",
+  "webDir": "www",
+  "server": {
+    "androidScheme": "https"
+  }
+}
