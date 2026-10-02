@@ -16,7 +16,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 18
+          node-version: 20
 
       - name: Setup Java JDK
         uses: actions/setup-java@v4
@@ -24,18 +24,15 @@ jobs:
           distribution: 'zulu'
           java-version: '17'
 
-      - name: Setup Android SDK
-        uses: android-actions/setup-android@v3
-
       - name: Install Dependencies
         run: npm install
 
       - name: Initialize Android Project
         run: |
-          npx cap add android
+          npx cap add android || true
           npx cap sync android
 
-      - name: Grant Audio & Internet Permissions
+      - name: Add Permissions to AndroidManifest
         run: |
           sed -i '/<application/i <uses-permission android:name="android.permission.RECORD_AUDIO" />\n<uses-permission android:name="android.permission.INTERNET" />' android/app/src/main/AndroidManifest.xml
 
