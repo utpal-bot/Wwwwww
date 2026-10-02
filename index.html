@@ -1,0 +1,668 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport"
+      content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+
+<title>Cyrus Voice</title>
+
+<style>
+*{
+    box-sizing:border-box;
+    margin:0;
+    padding:0;
+    -webkit-tap-highlight-color:transparent;
+}
+
+html,body{
+    width:100%;
+    height:100%;
+    overflow:hidden;
+    background:#000;
+    font-family:-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+button{
+    border:0;
+    outline:0;
+    cursor:pointer;
+}
+
+/* =================================
+   COMMON
+================================= */
+
+.screen{
+    position:absolute;
+    inset:0;
+    background:#000;
+    color:white;
+}
+
+/* =================================
+   VOICE SCREEN
+================================= */
+
+#voiceScreen{
+    display:block;
+}
+
+/* Top buttons (Standard 44px compact mobile size) */
+
+.top-btn{
+    position:absolute;
+    top:32px;
+    width:44px;
+    height:44px;
+    border-radius:50%;
+    background:#1c1c1e;
+    border:1px solid #2c2c2e;
+
+    display:flex;
+    align-items:center;
+    justify-content:center;
+
+    z-index:10;
+    transition:transform 0.12s ease;
+}
+
+.top-btn:active{
+    transform:scale(0.92);
+}
+
+.menu-btn{
+    left:20px;
+}
+
+.control-btn{
+    right:20px;
+}
+
+/* hamburger */
+
+.hamburger{
+    width:18px;
+    height:14px;
+
+    display:flex;
+    flex-direction:column;
+    justify-content:space-between;
+}
+
+.hamburger span{
+    height:2px;
+    width:18px;
+    background:#eee;
+    border-radius:2px;
+}
+
+/* sliders */
+
+.sliders{
+    width:20px;
+    height:20px;
+    position:relative;
+}
+
+.slider-line{
+    position:absolute;
+    width:20px;
+    height:2px;
+    background:#eee;
+    border-radius:2px;
+}
+
+.slider-line.a{
+    top:4px;
+}
+
+.slider-line.b{
+    top:14px;
+}
+
+.knob{
+    position:absolute;
+    width:6px;
+    height:6px;
+    border:2px solid #eee;
+    background:#1c1c1e;
+    border-radius:50%;
+}
+
+.knob.a{
+    left:12px;
+    top:2px;
+}
+
+.knob.b{
+    left:3px;
+    top:12px;
+}
+
+/* Orb */
+
+.orb{
+    position:absolute;
+
+    left:50%;
+    top:50%;
+
+    width:min(330px, 68vw);
+    aspect-ratio:1;
+
+    transform:translate(-50%,-50%);
+
+    border-radius:50%;
+
+    background:
+    radial-gradient(
+        circle at 50% 42%,
+        #ffffff 0%,
+        #f5f6ff 27%,
+        #e6e8ff 55%,
+        #cbd1ff 80%,
+        #aab5ff 100%
+    );
+
+    box-shadow:0 0 45px rgba(170, 181, 255, 0.3);
+    animation:orbMove 4s ease-in-out infinite;
+}
+
+@keyframes orbMove{
+    0%,100%{
+        transform:translate(-50%,-50%) scale(0.98);
+    }
+    50%{
+        transform:translate(-50%,-50%) scale(1.02);
+    }
+}
+
+/* Mic Button */
+
+.voice-mic{
+    position:absolute;
+
+    left:50%;
+    bottom:32px;
+
+    transform:translateX(-50%);
+
+    width:64px;
+    height:64px;
+
+    border-radius:50%;
+
+    background:#1c1c1e;
+    border:1px solid #2c2c2e;
+
+    display:flex;
+    align-items:center;
+    justify-content:center;
+
+    transition:all 0.2s ease;
+}
+
+.voice-mic:active{
+    transform:translateX(-50%) scale(0.92);
+}
+
+.voice-mic.off{
+    background:#ff3b30;
+    border-color:#ff3b30;
+}
+
+.mic-icon{
+    width:16px;
+    height:25px;
+
+    border:2.5px solid white;
+    border-radius:10px;
+
+    position:relative;
+}
+
+.mic-icon:after{
+    content:"";
+
+    position:absolute;
+
+    width:23px;
+    height:13px;
+
+    left:50%;
+    bottom:-10px;
+
+    transform:translateX(-50%);
+
+    border:2.5px solid white;
+    border-top:0;
+
+    border-radius:0 0 16px 16px;
+}
+
+/* =================================
+   SIDE MENU
+================================= */
+
+.overlay{
+    position:absolute;
+    inset:0;
+
+    background:rgba(0,0,0,.6);
+    backdrop-filter:blur(4px);
+
+    display:none;
+
+    z-index:30;
+}
+
+.overlay.show{
+    display:block;
+}
+
+.side-menu{
+    position:absolute;
+
+    left:0;
+    top:0;
+    bottom:0;
+
+    width:76%;
+    max-width:320px;
+
+    background:#141416;
+    border-right:1px solid #222;
+
+    transform:translateX(-100%);
+
+    transition:transform .25s ease;
+
+    z-index:40;
+
+    padding:50px 20px;
+}
+
+.side-menu.show{
+    transform:translateX(0);
+}
+
+.cyrus-title{
+    font-size:26px;
+    font-weight:700;
+    letter-spacing:1px;
+    margin:0 0 32px 10px;
+}
+
+.menu-item{
+    display:block;
+
+    width:100%;
+
+    padding:13px 16px;
+
+    margin-bottom:8px;
+
+    background:transparent;
+
+    color:#e5e5ea;
+
+    text-align:left;
+
+    font-size:16px;
+    font-weight:500;
+
+    border-radius:10px;
+    transition:background 0.15s ease;
+}
+
+.menu-item:active{
+    background:#242426;
+}
+
+/* =================================
+   CONVERSATION SCREEN
+================================= */
+
+#conversationScreen{
+    display:none;
+    flex-direction:column;
+}
+
+/* Header */
+
+.chat-header{
+    height:60px;
+
+    flex-shrink:0;
+
+    display:flex;
+    align-items:center;
+
+    padding:0 18px;
+
+    background:#141416;
+
+    border-bottom:1px solid #242426;
+
+    font-size:18px;
+    font-weight:600;
+}
+
+.back-button{
+    font-size:28px;
+    margin-right:12px;
+
+    width:36px;
+    height:36px;
+    background:transparent;
+    color:white;
+    display:flex;
+    align-items:center;
+}
+
+/* Messages */
+
+.messages{
+    flex:1;
+
+    overflow-y:auto;
+
+    padding:20px 16px;
+}
+
+.message{
+    max-width:82%;
+
+    padding:12px 15px;
+
+    margin-bottom:12px;
+
+    border-radius:16px;
+
+    font-size:15px;
+    line-height:1.45;
+}
+
+.user-message{
+    margin-left:auto;
+    background:#2c2c2e;
+}
+
+.cyrus-message{
+    background:#161618;
+    border:1px solid #242426;
+}
+
+/* Chat input */
+
+.chat-bottom{
+    padding:10px 14px 24px;
+
+    display:flex;
+    align-items:center;
+
+    gap:8px;
+
+    background:#000;
+}
+
+.text-box{
+    flex:1;
+
+    min-width:0;
+
+    min-height:46px;
+
+    border-radius:23px;
+
+    background:#1c1c1e;
+
+    color:white;
+
+    padding:12px 18px;
+
+    display:flex;
+    align-items:center;
+
+    font-size:15px;
+    outline:none;
+}
+
+.send-button{
+    width:46px;
+    height:46px;
+
+    border-radius:50%;
+
+    background:#1c1c1e;
+
+    color:white;
+
+    font-size:18px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+}
+
+.send-button:active{
+    background:#2c2c2e;
+}
+
+/* Voice button */
+
+.chat-voice-button{
+    width:46px;
+    height:46px;
+
+    flex-shrink:0;
+
+    border-radius:50%;
+
+    background:#283fbe;
+
+    display:flex;
+    align-items:center;
+    justify-content:center;
+}
+
+.chat-voice-button:active{
+    transform:scale(0.92);
+}
+
+.chat-mic{
+    width:13px;
+    height:20px;
+
+    border:2px solid white;
+
+    border-radius:8px;
+
+    position:relative;
+}
+
+.chat-mic:after{
+    content:"";
+
+    position:absolute;
+
+    left:50%;
+    bottom:-8px;
+
+    transform:translateX(-50%);
+
+    width:18px;
+    height:10px;
+
+    border:2px solid white;
+
+    border-top:0;
+
+    border-radius:0 0 12px 12px;
+}
+</style>
+</head>
+
+<body>
+
+<!-- VOICE SCREEN -->
+<div class="screen" id="voiceScreen">
+    <button class="top-btn menu-btn" id="openMenu">
+        <div class="hamburger">
+            <span></span>
+            <span></span>
+            <span></span>
+        </div>
+    </button>
+
+    <button class="top-btn control-btn">
+        <div class="sliders">
+            <div class="slider-line a"></div>
+            <div class="slider-line b"></div>
+            <div class="knob a"></div>
+            <div class="knob b"></div>
+        </div>
+    </button>
+
+    <div class="orb"></div>
+
+    <button class="voice-mic" id="voiceMic">
+        <div class="mic-icon"></div>
+    </button>
+</div>
+
+<!-- DARK OVERLAY -->
+<div class="overlay" id="overlay"></div>
+
+<!-- SIDE MENU -->
+<div class="side-menu" id="sideMenu">
+    <div class="cyrus-title">
+        CYRUS
+    </div>
+
+    <button class="menu-item">
+        ＋ New Chat
+    </button>
+
+    <button class="menu-item" id="conversationButton">
+        💬 Conversations
+    </button>
+
+    <button class="menu-item">
+        ⭐ Saved
+    </button>
+
+    <button class="menu-item">
+        ⚙️ Settings
+    </button>
+
+    <button class="menu-item">
+        ℹ️ About Cyrus
+    </button>
+</div>
+
+<!-- CONVERSATION SCREEN -->
+<div class="screen" id="conversationScreen">
+    <div class="chat-header">
+        <button class="back-button" id="chatBack">‹</button>
+        <span>Conversations</span>
+    </div>
+
+    <div class="messages" id="messages">
+        <div class="message cyrus-message">
+            Hello! 👋<br>
+            Main Cyrus hoon. Aap mujhse text ya voice mein baat kar sakte hain.
+        </div>
+    </div>
+
+    <div class="chat-bottom">
+        <div class="text-box" contenteditable="true" id="textInput">Type a message...</div>
+        <button class="send-button" id="sendButton">➤</button>
+        <button class="chat-voice-button" id="chatVoiceButton">
+            <div class="chat-mic"></div>
+        </button>
+    </div>
+</div>
+
+<script>
+const voiceScreen = document.getElementById("voiceScreen");
+const conversationScreen = document.getElementById("conversationScreen");
+const openMenu = document.getElementById("openMenu");
+const sideMenu = document.getElementById("sideMenu");
+const overlay = document.getElementById("overlay");
+const conversationButton = document.getElementById("conversationButton");
+const chatBack = document.getElementById("chatBack");
+const chatVoiceButton = document.getElementById("chatVoiceButton");
+const voiceMic = document.getElementById("voiceMic");
+const sendButton = document.getElementById("sendButton");
+const textInput = document.getElementById("textInput");
+const messages = document.getElementById("messages");
+
+// Menu Open
+openMenu.addEventListener("click", () => {
+    sideMenu.classList.add("show");
+    overlay.classList.add("show");
+});
+
+// Menu Close
+overlay.addEventListener("click", () => {
+    sideMenu.classList.remove("show");
+    overlay.classList.remove("show");
+});
+
+// Switch to Conversation
+conversationButton.addEventListener("click", () => {
+    sideMenu.classList.remove("show");
+    overlay.classList.remove("show");
+    voiceScreen.style.display = "none";
+    conversationScreen.style.display = "flex";
+});
+
+// Back to Voice
+chatBack.addEventListener("click", () => {
+    conversationScreen.style.display = "none";
+    voiceScreen.style.display = "block";
+});
+
+chatVoiceButton.addEventListener("click", () => {
+    conversationScreen.style.display = "none";
+    voiceScreen.style.display = "block";
+});
+
+// Mic Toggle
+let micOff = false;
+voiceMic.addEventListener("click", () => {
+    micOff = !micOff;
+    if(micOff){
+        voiceMic.classList.add("off");
+    }else{
+        voiceMic.classList.remove("off");
+    }
+});
+
+// Send message
+sendButton.addEventListener("click", () => {
+    const text = textInput.innerText.trim();
+    if(text === "" || text === "Type a message..."){
+        return;
+    }
+
+    const userMessage = document.createElement("div");
+    userMessage.className = "message user-message";
+    userMessage.textContent = text;
+    messages.appendChild(userMessage);
+
+    textInput.innerText = "Type a message...";
+    messages.scrollTop = messages.scrollHeight;
+});
+
+// Input focus placeholder clear
+textInput.addEventListener("focus", () => {
+    if(textInput.innerText === "Type a message..."){
+        textInput.innerText = "";
+    }
+});
+</script>
+
+</body>
+</html>
