@@ -24,6 +24,13 @@ jobs:
           distribution: 'zulu'
           java-version: '17'
 
+      - name: Ensure WWW Directory Exists
+        run: |
+          mkdir -p www
+          if [ -f "index.html" ]; then
+            cp index.html www/
+          fi
+
       - name: Install Dependencies
         run: npm install
 
