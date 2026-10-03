@@ -548,7 +548,7 @@ function speakVoice(text){
 }
 
 /* ========================================================
-   SPEECH RECOGNITION (Tap Orb to Talk)
+   SPEECH RECOGNITION (Direct Native Trigger)
 ======================================================== */
 const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 
@@ -578,7 +578,9 @@ if(SpeechRecognition){
         cyrusOrb.style.transform = "scale(1)";
         cyrusOrb.classList.add("idle");
         statusLabel.textContent = "CYRUS ONLINE";
-        if(e.error !== 'no-speech'){
+        if(e.error === 'not-allowed' || e.error === 'service-not-allowed'){
+            liveText.textContent = "Boss, phone me Google Voice typing / Mic verify kijiye!";
+        } else if(e.error !== 'no-speech'){
             liveText.textContent = "Mic note: " + e.error;
         } else {
             liveText.textContent = "Tap orb to talk with Cyrus, Boss!";
@@ -592,6 +594,7 @@ if(SpeechRecognition){
     };
 }
 
+/* Direct Orb Tap-to-Talk */
 cyrusOrb.addEventListener("click", () => {
     if(!OPENROUTER_KEY){
         promptApiKey();
@@ -600,15 +603,21 @@ cyrusOrb.addEventListener("click", () => {
     if(isSpeaking || ('speechSynthesis' in window && window.speechSynthesis.speaking)){
         window.speechSynthesis.cancel();
         isSpeaking = false;
-        cyrusOrb.classList.add("idle");
+        cyrusOrb.className = "orb idle";
         statusLabel.textContent = "CYRUS ONLINE";
+        liveText.textContent = "Tap orb to talk with Cyrus, Boss!";
         return;
     }
     if(recognition){
         try{
             recognition.start();
         }catch(err){
-            recognition.stop();
+            try {
+                recognition.stop();
+                setTimeout(() => {
+                    try { recognition.start(); } catch(e) {}
+                }, 150);
+            } catch(e) {}
         }
     } else {
         alert("Boss, browser Speech Recognition support nahi karta!");
@@ -721,7 +730,6 @@ Behavior Rules:
     try{
         const reply = await fetchSafeCyrusBrain(cleanKey, SYSTEM_PROMPT);
 
-        // Remove Thinking Bubble as soon as reply arrives
         if(chatThinkingBubble.parentNode) chatThinkingBubble.remove();
         cyrusOrb.className = "orb";
 
