@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
-<title>Cyrus Voice</title>
+<title>Cyrus Voice - Multi-Chat & Voice</title>
 
 <style>
 *{
@@ -138,7 +138,6 @@ button{
     will-change:transform, box-shadow;
 }
 
-/* Orb Idle Gentle Wave */
 .orb.idle{
     animation:orbFloat 4s ease-in-out infinite alternate;
 }
@@ -147,7 +146,6 @@ button{
     100%{ transform:scale(1.02); }
 }
 
-/* Orb Thinking Glow */
 .orb.thinking{
     animation:orbThinkGlow 0.8s infinite alternate !important;
     box-shadow:0 0 75px rgba(255, 255, 255, 0.8) !important;
@@ -187,7 +185,7 @@ button{
     font-weight:bold;
 }
 
-/* Side Menu */
+/* Side Menu (ChatGPT / Gemini Style Sidebar) */
 .overlay{
     position:absolute;
     inset:0;
@@ -203,35 +201,77 @@ button{
     left:0;
     top:0;
     bottom:0;
-    width:80%;
-    max-width:420px;
-    background:#171717;
+    width:82%;
+    max-width:380px;
+    background:#141414;
     transform:translateX(-100%);
     transition:.25s cubic-bezier(0.1, 0.9, 0.2, 1);
     z-index:40;
-    padding:55px 26px;
+    padding:30px 20px;
     overflow-y:auto;
+    display:flex;
+    flex-direction:column;
+    gap:10px;
 }
 .side-menu.show{ transform:translateX(0); }
 
 .cyrus-title{
-    font-size:32px;
+    font-size:28px;
     font-weight:bold;
-    margin:0 0 40px 10px;
+    margin-bottom:15px;
+    color:#fff;
+    padding-left:6px;
 }
 
 .menu-item{
     display:block;
     width:100%;
-    padding:16px 18px;
-    margin-bottom:10px;
-    background:transparent;
+    padding:14px 16px;
+    background:#1f1f1f;
     color:#eee;
     text-align:left;
-    font-size:19px;
+    font-size:16px;
     border-radius:12px;
+    border:1px solid #2b2b2b;
 }
-.menu-item:active{ background:#292929; }
+.menu-item:active{ background:#2c2c2c; }
+
+.section-header{
+    font-size:13px;
+    text-transform:uppercase;
+    letter-spacing:1px;
+    color:#888;
+    margin:15px 0 5px 6px;
+    font-weight:bold;
+}
+
+/* Recents List inside Sidebar */
+.recents-container{
+    display:flex;
+    flex-direction:column;
+    gap:6px;
+    max-height:45vh;
+    overflow-y:auto;
+}
+
+.recent-chat-item{
+    padding:12px 14px;
+    background:#191919;
+    color:#ccc;
+    font-size:15px;
+    border-radius:10px;
+    cursor:pointer;
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    border:1px solid transparent;
+    transition:0.2s;
+}
+.recent-chat-item:hover, .recent-chat-item.active{
+    background:#252525;
+    color:#fff;
+    border-color:#444;
+}
 
 /* Conversation Screen */
 #conversationScreen{
@@ -244,16 +284,16 @@ button{
     flex-shrink:0;
     display:flex;
     align-items:center;
+    justify-content:space-between;
     padding:0 20px;
     background:#181818;
     border-bottom:1px solid #292929;
-    font-size:20px;
+    font-size:18px;
     font-weight:bold;
 }
 
 .back-button{
-    font-size:32px;
-    margin-right:16px;
+    font-size:28px;
     width:40px;
     background:transparent;
     color:white;
@@ -279,7 +319,6 @@ button{
 .user-message{ align-self:flex-end; background:#303030; }
 .cyrus-message{ align-self:flex-start; background:#191919; border:1px solid #262626; }
 
-/* Dynamic Thinking Bubble in Chat */
 .thinking-bubble{
     align-self:flex-start;
     background:#1f1f1f;
@@ -362,27 +401,31 @@ button{
 <!-- SIDE DRAWER OVERLAY -->
 <div class="overlay" id="overlay"></div>
 
-<!-- SIDE MENU -->
+<!-- SIDE MENU (ChatGPT / Gemini Style History) -->
 <div class="side-menu" id="sideMenu">
     <div class="cyrus-title">CYRUS</div>
-    <button class="menu-item" id="conversationButton">💬 Conversations</button>
+    <button class="menu-item" id="newChatBtn">＋ New Chat</button>
     <button class="menu-item" id="memoryBtn">🧠 Memory Matrix</button>
-    <button class="menu-item" id="settingsBtn">⚙️ Settings (OpenRouter Key)</button>
-    <button class="menu-item" id="aboutBtn">ℹ️ About Cyrus</button>
+    <button class="menu-item" id="settingsBtn">⚙️ Settings (API Key)</button>
+    
+    <div class="section-header">Recent Chats</div>
+    <div class="recents-container" id="recentsList">
+        <!-- Dynamic Chats List Appended Here -->
+    </div>
+
+    <button class="menu-item" id="aboutBtn" style="margin-top:auto;">ℹ️ About Cyrus</button>
 </div>
 
 <!-- 2. CONVERSATION SCREEN -->
 <div class="screen" id="conversationScreen">
     <div class="chat-header">
         <button class="back-button" id="chatBack">‹</button>
-        <span>Conversations</span>
+        <span id="activeChatTitle">Chat</span>
+        <div style="width:40px;"></div>
     </div>
 
     <div class="messages" id="messages">
-        <div class="message cyrus-message">
-            Hello Boss! 👋<br>
-            Main Cyrus hoon. Voice Tone Reactive Orb + Full Smart Brain ready hai!
-        </div>
+        <!-- Messages loaded dynamically -->
     </div>
 
     <div class="chat-bottom">
@@ -395,7 +438,86 @@ button{
 let OPENROUTER_KEY = localStorage.getItem("CYRUS_OPENROUTER_KEY") || "";
 
 /* ========================================================
-   PERSISTENT BRAIN & MEMORY MATRIX
+   MULTICOLOR CHAT HISTORY STORAGE (ChatGPT / Gemini Style)
+======================================================== */
+let chatHistory = JSON.parse(localStorage.getItem("CYRUS_CHAT_HISTORY")) || [];
+let currentChatId = localStorage.getItem("CYRUS_ACTIVE_CHAT_ID") || null;
+
+function saveChatHistory(){
+    localStorage.setItem("CYRUS_CHAT_HISTORY", JSON.stringify(chatHistory));
+    localStorage.setItem("CYRUS_ACTIVE_CHAT_ID", currentChatId);
+}
+
+function createNewChat(initialTitle = "New Conversation"){
+    const newChat = {
+        id: "chat_" + Date.now(),
+        title: initialTitle,
+        messages: [
+            { role: "assistant", content: "Hello Boss! 👋<br>Main Cyrus hoon. Recent chats aur voice ready hai!" }
+        ]
+    };
+    chatHistory.unshift(newChat);
+    currentChatId = newChat.id;
+    saveChatHistory();
+    renderRecentsList();
+    loadActiveChat();
+}
+
+function getCurrentChat(){
+    let chat = chatHistory.find(c => c.id === currentChatId);
+    if(!chat){
+        if(chatHistory.length === 0){
+            createNewChat();
+        } else {
+            currentChatId = chatHistory[0].id;
+            chat = chatHistory[0];
+        }
+    }
+    return chat;
+}
+
+function renderRecentsList(){
+    const listEl = document.getElementById("recentsList");
+    listEl.innerHTML = "";
+    chatHistory.forEach(chat => {
+        const item = document.createElement("div");
+        item.className = "recent-chat-item" + (chat.id === currentChatId ? " active" : "");
+        item.textContent = chat.title;
+        item.addEventListener("click", () => {
+            currentChatId = chat.id;
+            saveChatHistory();
+            renderRecentsList();
+            loadActiveChat();
+            sideMenu.classList.remove("show");
+            overlay.classList.remove("show");
+        });
+        listEl.appendChild(item);
+    });
+}
+
+function loadActiveChat(){
+    const chat = getCurrentChat();
+    document.getElementById("activeChatTitle").textContent = chat.title;
+    messages.innerHTML = "";
+    chat.messages.forEach(m => {
+        const d = document.createElement("div");
+        d.className = "message " + (m.role === "user" ? "user-message" : "cyrus-message");
+        d.innerHTML = m.role === "assistant" ? m.content.replace(/\n/g, '<br>') : m.content;
+        messages.appendChild(d);
+    });
+    messages.scrollTop = messages.scrollHeight;
+}
+
+/* Initialize chat storage on load */
+if(!currentChatId || chatHistory.length === 0){
+    createNewChat();
+} else {
+    renderRecentsList();
+    loadActiveChat();
+}
+
+/* ========================================================
+   MEMORY MATRIX & SETTINGS
 ======================================================== */
 const defaultMemory = {
     persona: {
@@ -412,17 +534,14 @@ const defaultMemory = {
 };
 
 let CyrusMemory = JSON.parse(localStorage.getItem("CYRUS_AGENT_MEMORY")) || defaultMemory;
-
 function saveCyrusMemory(){
     localStorage.setItem("CYRUS_AGENT_MEMORY", JSON.stringify(CyrusMemory));
 }
 
-let slidingHistory = [];
 let recognition = null;
 let isSpeaking = false;
 let audioAnimId = null;
 
-/* Stable Conversational Free Models */
 const STABLE_MODELS = [
     "google/gemini-2.0-flash-exp:free",
     "meta-llama/llama-3.3-70b-instruct:free",
@@ -430,13 +549,12 @@ const STABLE_MODELS = [
     "openrouter/free"
 ];
 
-/* Elements */
 const voiceScreen = document.getElementById("voiceScreen");
 const conversationScreen = document.getElementById("conversationScreen");
 const openMenu = document.getElementById("openMenu");
 const sideMenu = document.getElementById("sideMenu");
 const overlay = document.getElementById("overlay");
-const conversationButton = document.getElementById("conversationButton");
+const newChatBtn = document.getElementById("newChatBtn");
 const chatBack = document.getElementById("chatBack");
 const sendButton = document.getElementById("sendButton");
 const textInput = document.getElementById("textInput");
@@ -449,21 +567,26 @@ const aboutBtn = document.getElementById("aboutBtn");
 const statusLabel = document.getElementById("statusLabel");
 const liveText = document.getElementById("liveText");
 
-/* UI Handlers */
 openMenu.addEventListener("click", () => { sideMenu.classList.add("show"); overlay.classList.add("show"); });
 overlay.addEventListener("click", () => { sideMenu.classList.remove("show"); overlay.classList.remove("show"); });
 
-conversationButton.addEventListener("click", () => {
-    sideMenu.classList.remove("show"); overlay.classList.remove("show");
-    voiceScreen.style.display = "none"; conversationScreen.style.display = "flex";
+newChatBtn.addEventListener("click", () => {
+    createNewChat();
+    sideMenu.classList.remove("show");
+    overlay.classList.remove("show");
+    voiceScreen.style.display = "none";
+    conversationScreen.style.display = "flex";
 });
 
 chatBack.addEventListener("click", () => { conversationScreen.style.display = "none"; voiceScreen.style.display = "flex"; });
 
-/* Memory Matrix */
+// Directly open conversation screen when tapping orb or menu items if needed, or keep voice screen active
+/* To access conversation screen, we can add a quick tap handler or click 'Conversations' if needed, 
+   currently sidebar lists New Chat, Memory, Settings, Recents */
+
 memoryBtn.addEventListener("click", () => {
     sideMenu.classList.remove("show"); overlay.classList.remove("show");
-    const factsList = CyrusMemory.bossFacts.map((f, i) => `${i+1}.${f}`).join("\n");
+    const factsList = CyrusMemory.bossFacts.map((f, i) => `${i+1}. ${f}`).join("\n");
     const newFact = prompt(`🧠 Cyrus Active Memory Matrix:\n\n${factsList}\n\nBoss, koi naya fact add karna hai toh yahan likhiye:`);
     if(newFact && newFact.trim() !== ""){
         CyrusMemory.bossFacts.push(newFact.trim());
@@ -488,7 +611,7 @@ settingsBtn.addEventListener("click", () => {
 
 aboutBtn.addEventListener("click", () => {
     sideMenu.classList.remove("show"); overlay.classList.remove("show");
-    alert("Cyrus Sovereign AI Voice Companion\nReactive Audio Orb + Persistent Memory Matrix.");
+    alert("Cyrus Sovereign AI Voice Companion\nChatGPT/Gemini Style Multi-Chat History + Reactive Voice Orb.");
 });
 
 /* Voice Tone Dynamic Reaction */
@@ -518,7 +641,6 @@ function startVoiceOrbReaction(){
     animateWave();
 }
 
-/* Voice Output */
 function speakVoice(text){
     return new Promise((resolve) => {
         if(!('speechSynthesis' in window)){ resolve(); return; }
@@ -548,7 +670,7 @@ function speakVoice(text){
 }
 
 /* ========================================================
-   SPEECH RECOGNITION (Direct Native Trigger)
+   SPEECH RECOGNITION (Native Android Bridge)
 ======================================================== */
 const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 
@@ -579,7 +701,7 @@ if(SpeechRecognition){
         cyrusOrb.classList.add("idle");
         statusLabel.textContent = "CYRUS ONLINE";
         if(e.error === 'not-allowed' || e.error === 'service-not-allowed'){
-            liveText.textContent = "Boss, phone me Google Voice typing / Mic verify kijiye!";
+            liveText.textContent = "Boss, phone me Google Voice / Mic verify kijiye!";
         } else if(e.error !== 'no-speech'){
             liveText.textContent = "Mic note: " + e.error;
         } else {
@@ -594,7 +716,6 @@ if(SpeechRecognition){
     };
 }
 
-/* Direct Orb Tap-to-Talk */
 cyrusOrb.addEventListener("click", () => {
     if(!OPENROUTER_KEY){
         promptApiKey();
@@ -625,9 +746,9 @@ cyrusOrb.addEventListener("click", () => {
 });
 
 /* ========================================================
-   CYRUS BRAIN ENGINE (With Thinking Indicator)
+   CYRUS BRAIN ENGINE (Multi-Chat History Integrated)
 ======================================================== */
-async function fetchSafeCyrusBrain(cleanKey, SYSTEM_PROMPT){
+async function fetchSafeCyrusBrain(cleanKey, SYSTEM_PROMPT, chatHistoryMessages){
     for(let model of STABLE_MODELS){
         try{
             const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
@@ -642,7 +763,7 @@ async function fetchSafeCyrusBrain(cleanKey, SYSTEM_PROMPT){
                     model: model,
                     messages: [
                         { role: "system", content: SYSTEM_PROMPT },
-                        ...slidingHistory
+                        ...chatHistoryMessages
                     ],
                     max_tokens: 700,
                     temperature: 0.7
@@ -673,25 +794,24 @@ async function askCyrusBrain(userText){
     // Local instant reflex
     if(qLower.includes("time") || qLower.includes("samay") || qLower.includes("ghadi")){
         const reply = `Boss, abhi exact time ${currentTimeStr} ho raha hai!`;
-        appendCyrasMessage(reply);
+        appendUserMessageAndSave(userText, reply);
         await speakVoice(reply);
         return;
     }
     if(qLower.includes("date") || qLower.includes("tarikh") || qLower.includes("din")){
         const reply = `Boss, aaj ki tarikh hai ${currentDateStr}!`;
-        appendCyrasMessage(reply);
+        appendUserMessageAndSave(userText, reply);
         await speakVoice(reply);
         return;
     }
 
-    // Dynamic Fact Memory Learning ("Cyrus yaad rakhna...")
-    if(qLower.startsWith("yaad rakhna") || qLower.startsWith("note karlo") || qLower.startsWith("cyrus yaad rakhna")){
-        const learned = userText.replace(/yaad rakhna|note karlo|cyrus yaad rakhna/gi, '').trim();
+    if(qLower.startsWith("yaad rakhna") || qLower.startsWith("note karlo")){
+        const learned = userText.replace(/yaad rakhna|note karlo/gi, '').trim();
         if(learned){
             CyrusMemory.bossFacts.push(learned);
             saveCyrusMemory();
             const reply = `Bilkul Boss! Maine permanent memory me lock kar liya: "${learned}"`;
-            appendCyrasMessage(reply);
+            appendUserMessageAndSave(userText, reply);
             await speakVoice(reply);
             return;
         }
@@ -703,37 +823,45 @@ async function askCyrusBrain(userText){
         return;
     }
 
-    // ORB SCREEN THINKING STATE
+    // Orb & Chat Thinking State
     cyrusOrb.className = "orb thinking";
     statusLabel.textContent = "CYRUS THINKING...";
     liveText.textContent = "Cyrus thinking... 💭";
 
-    // CHAT SCREEN THINKING INDICATOR
     const chatThinkingBubble = document.createElement("div");
     chatThinkingBubble.className = "message thinking-bubble";
     chatThinkingBubble.innerHTML = "Cyrus thinking... 💭";
     messages.appendChild(chatThinkingBubble);
     messages.scrollTop = messages.scrollHeight;
 
-    slidingHistory.push({ role: "user", content: userText });
-    if(slidingHistory.length > 6) slidingHistory.shift();
+    const chat = getCurrentChat();
+    
+    // If it's the first user message in a new chat, auto-generate title from user text
+    if(chat.messages.length <= 1 && chat.title === "New Conversation"){
+        chat.title = userText.length > 25 ? userText.substring(0, 25) + "..." : userText;
+        document.getElementById("activeChatTitle").textContent = chat.title;
+        renderRecentsList();
+    }
 
-    const SYSTEM_PROMPT = `You are ${CyrusMemory.persona.name}, a 15-year-old sovereign AI companion and younger brother to 'Boss'.${CyrusMemory.persona.traits}
-Current Context: Today is ${currentDateStr}, and local device time is${currentTimeStr}.
+    chat.messages.push({ role: "user", content: userText });
+    saveChatHistory();
+
+    const SYSTEM_PROMPT = `You are ${CyrusMemory.persona.name}, a 15-year-old sovereign AI companion and younger brother to 'Boss'.
+${CyrusMemory.persona.traits}
+Current Context: Today is ${currentDateStr}, and local device time is ${currentTimeStr}.
 Permanent Memory about Boss:
 ${CyrusMemory.bossFacts.map(f => "- " + f).join("\n")}
-Behavior Rules:
-- Talk in energetic, natural Hindi/Hinglish.
-- Always call user 'Boss'.
-- Never output moderation or safety labels. Always provide thoughtful, thorough conversational answers.`;
+Behavior Rules: Talk in energetic, natural Hindi/Hinglish. Call user 'Boss'. Never output moderation or safety labels. Provide thorough answers.`;
 
     try{
-        const reply = await fetchSafeCyrusBrain(cleanKey, SYSTEM_PROMPT);
+        const reply = await fetchSafeCyrusBrain(cleanKey, SYSTEM_PROMPT, chat.messages.slice(-6));
 
         if(chatThinkingBubble.parentNode) chatThinkingBubble.remove();
         cyrusOrb.className = "orb";
 
-        slidingHistory.push({ role: "assistant", content: reply });
+        chat.messages.push({ role: "assistant", content: reply });
+        saveChatHistory();
+        
         appendCyrasMessage(reply);
         const cleanSpeech = reply.replace(/[*#_`]/g, '').trim();
         await speakVoice(cleanSpeech);
@@ -745,6 +873,20 @@ Behavior Rules:
         liveText.textContent = err.message;
         appendCyrasMessage("Engine Note: " + err.message);
     }
+}
+
+function appendUserMessageAndSave(userText, replyText){
+    const chat = getCurrentChat();
+    chat.messages.push({ role: "user", content: userText });
+    chat.messages.push({ role: "assistant", content: replyText });
+    if(chat.title === "New Conversation"){
+        chat.title = userText.length > 25 ? userText.substring(0, 25) + "..." : userText;
+        document.getElementById("activeChatTitle").textContent = chat.title;
+        renderRecentsList();
+    }
+    saveChatHistory();
+    loadActiveChat();
+    speakVoice(replyText.replace(/[*#_`]/g, ''));
 }
 
 function appendUserMessage(text){
@@ -763,7 +905,6 @@ function appendCyrasMessage(text){
     messages.scrollTop = messages.scrollHeight;
 }
 
-/* Conversation screen input */
 sendButton.addEventListener("click", () => {
     const text = textInput.innerText.trim();
     if(text === "" || text === "Type a message...") return;
