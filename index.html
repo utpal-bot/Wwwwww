@@ -149,6 +149,15 @@ button{
     100%{ transform:scale(1.02); }
 }
 
+.orb.listening{
+    animation:orbListen 0.9s infinite alternate !important;
+    box-shadow:0 0 70px rgba(58, 134, 255, 0.85) !important;
+}
+@keyframes orbListen{
+    0%{ transform:scale(0.95); }
+    100%{ transform:scale(1.06); }
+}
+
 .orb.thinking{
     animation:orbThinkGlow 0.8s infinite alternate !important;
     box-shadow:0 0 75px rgba(255, 255, 255, 0.8) !important;
@@ -701,7 +710,7 @@ function speakVoice(text){
 }
 
 /* ========================================================
-   SPEECH RECOGNITION (Voice Trigger with Android Fallback)
+   SPEECH RECOGNITION (Direct Native - No Browser Popup)
 ======================================================== */
 const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 
@@ -713,44 +722,39 @@ if(SpeechRecognition){
         recognition.lang = 'hi-IN';
 
         recognition.onstart = () => {
-            cyrusOrb.classList.remove("idle");
-            cyrusOrb.style.transform = "scale(1.05)";
-            cyrusOrb.style.boxShadow = "0 0 70px rgba(58, 134, 255, 0.85)";
+            cyrusOrb.classList.remove("idle", "thinking");
+            cyrusOrb.classList.add("listening");
             statusLabel.textContent = "LISTENING TO BOSS...";
             liveText.textContent = "Sun raha hoon Boss, boliye...";
         };
 
         recognition.onresult = (event) => {
             const spokenText = event.results[0][0].transcript;
+            cyrusOrb.classList.remove("listening");
             statusLabel.textContent = "YOU SAID:";
             liveText.textContent = `"${spokenText}"`;
             askCyrusBrain(spokenText);
         };
 
         recognition.onerror = (e) => {
-            cyrusOrb.style.transform = "scale(1)";
+            cyrusOrb.classList.remove("listening");
             cyrusOrb.classList.add("idle");
             statusLabel.textContent = "CYRUS ONLINE";
-            triggerVoicePromptFallback();
+            if(e.error !== 'no-speech'){
+                liveText.textContent = "Mic note: " + e.error;
+            } else {
+                liveText.textContent = "Tap orb to talk with Cyrus, Boss!";
+            }
         };
 
         recognition.onend = () => {
+            cyrusOrb.classList.remove("listening");
             if(!cyrusOrb.classList.contains("thinking") && !isSpeaking){
                 cyrusOrb.classList.add("idle");
             }
         };
     } catch(err) {
         recognition = null;
-    }
-}
-
-function triggerVoicePromptFallback(){
-    const spoken = prompt("Boss, boliye ya voice typing use kijiye:");
-    if(spoken && spoken.trim() !== ""){
-        liveText.textContent = `"${spoken}"`;
-        askCyrusBrain(spoken.trim());
-    } else {
-        liveText.textContent = "Tap orb to talk with Cyrus, Boss!";
     }
 }
 
@@ -771,15 +775,19 @@ cyrusOrb.addEventListener("click", () => {
         try{
             recognition.start();
         }catch(err){
-            triggerVoicePromptFallback();
+            try {
+                recognition.stop();
+                setTimeout(() => recognition.start(), 150);
+            } catch(e) {}
         }
     } else {
-        triggerVoicePromptFallback();
+        voiceScreen.style.display = "none";
+        conversationScreen.style.display = "flex";
     }
 });
 
 /* ========================================================
-   CYRUS BRAIN ENGINE (With Thinking Indicator)
+   CYRUS BRAIN ENGINE (Safe & Dynamic Thinking Flow)
 ======================================================== */
 async function fetchSafeCyrusBrain(cleanKey, SYSTEM_PROMPT, activeMessages){
     for(let model of STABLE_MODELS){
@@ -855,14 +863,14 @@ async function askCyrusBrain(userText){
         return;
     }
 
-    // 1. Orb screen par thinking state
+    // 1. Orb Screen Thinking Mode
     cyrusOrb.className = "orb thinking";
     statusLabel.textContent = "CYRUS THINKING...";
     liveText.textContent = "Cyrus thinking... 💭";
 
     const chat = getCurrentChat();
 
-    // 2. Chat history me naya user message add karein
+    // 2. Chat history me message push karein
     if(chat.messages.length <= 1 && chat.title === "New Conversation"){
         chat.title = userText.length > 25 ? userText.substring(0, 25) + "..." : userText;
         const titleEl = document.getElementById("activeChatTitle");
@@ -873,10 +881,10 @@ async function askCyrusBrain(userText){
     chat.messages.push({ role: "user", content: userText });
     saveChatHistory();
 
-    // 3. User message ko UI par render karein bina chat ko reset kiye
+    // 3. Chat UI me user message load karein bina chat clear kiye
     appendUserMessage(userText);
 
-    // 4. Chat screen par Thinking bubble dikhayein
+    // 4. Chat Screen par visible "Thinking Bubble" add karein
     const chatThinkingBubble = document.createElement("div");
     chatThinkingBubble.className = "message thinking-bubble";
     chatThinkingBubble.innerHTML = "Cyrus thinking... 💭";
@@ -892,7 +900,7 @@ Behavior Rules: Talk in energetic, natural Hindi/Hinglish. Call user 'Boss'. Nev
     try{
         const reply = await fetchSafeCyrusBrain(cleanKey, SYSTEM_PROMPT, chat.messages.slice(-6));
 
-        // Jawab aate hi thinking bubble hatayein
+        // Response aate hi Thinking Bubble remove hoga
         if(chatThinkingBubble.parentNode) chatThinkingBubble.remove();
         cyrusOrb.className = "orb";
 
