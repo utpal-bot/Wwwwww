@@ -2,978 +2,511 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <title>Cyrus Voice</title>
-
 <style>
-*{
-    box-sizing:border-box;
-    margin:0;
-    padding:0;
-    -webkit-tap-highlight-color:transparent;
-}
-
-html,body{
-    width:100%;
-    height:100%;
-    overflow:hidden;
-    background:#000;
-    font-family:Arial,sans-serif;
-}
-
-button{
-    border:0;
-    outline:0;
-    cursor:pointer;
-}
-
-/* =================================
-   SCREENS
-================================= */
-.screen{
-    position:absolute;
-    inset:0;
-    background:#000;
-    color:white;
-}
-
-#voiceScreen{
-    display:flex;
-    flex-direction:column;
-    align-items:center;
-    justify-content:space-between;
-    padding:40px 20px 25px;
-}
-
-/* Top bar buttons */
-.top-bar{
-    width:100%;
-    display:flex;
-    justify-content:space-between;
-    align-items:center;
-    z-index:20;
-}
-
-.top-btn{
-    width:50px;
-    height:50px;
-    border-radius:50%;
-    background:#222;
-    border:1px solid #333;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    transition:transform 0.15s ease;
-}
-
-.top-btn:active{ transform:scale(0.92); }
-
-.hamburger{
-    width:22px;
-    height:16px;
-    display:flex;
-    flex-direction:column;
-    justify-content:space-between;
-    pointer-events:none;
-}
-.hamburger span{
-    height:3px;
-    width:100%;
-    background:#eee;
-    border-radius:4px;
-}
-
-.sliders{
-    width:24px;
-    height:24px;
-    position:relative;
-    pointer-events:none;
-}
-.slider-line{
-    position:absolute;
-    width:100%;
-    height:3px;
-    background:#eee;
-    border-radius:4px;
-}
-.slider-line.a{ top:5px; }
-.slider-line.b{ top:16px; }
-
-.knob{
-    position:absolute;
-    width:8px;
-    height:8px;
-    border:2px solid #eee;
-    background:#222;
-    border-radius:50%;
-}
-.knob.a{ left:14px; top:2.5px; }
-.knob.b{ left:4px; top:13.5px; }
-
-/* Orb Container */
-.orb-container{
-    flex:1;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    width:100%;
-    position:relative;
-    z-index:10;
-}
-
-/* Organic Responsive Audio Orb */
-.orb{
-    width:min(340px,68vw);
-    aspect-ratio:1;
-    border-radius:50%;
-    background:radial-gradient(
-        circle at 50% 42%,
-        #ffffff 0%,
-        #f5f6ff 27%,
-        #e6e8ff 55%,
-        #cbd1ff 80%,
-        #aab5ff 100%
-    );
-    box-shadow:0 0 50px rgba(170, 181, 255, 0.3);
-    cursor:pointer;
-    transition:transform 0.08s ease-out, box-shadow 0.1s ease-out;
-    transform:scale(1);
-    will-change:transform, box-shadow;
-}
-
-.orb.idle{
-    animation:orbFloat 4s ease-in-out infinite alternate;
-}
-@keyframes orbFloat{
-    0%{ transform:scale(0.98); }
-    100%{ transform:scale(1.02); }
-}
-
-.orb.listening{
-    animation:orbListen 0.9s infinite alternate !important;
-    box-shadow:0 0 70px rgba(58, 134, 255, 0.85) !important;
-}
-@keyframes orbListen{
-    0%{ transform:scale(0.95); }
-    100%{ transform:scale(1.06); }
-}
-
-.orb.thinking{
-    animation:orbThinkGlow 0.8s infinite alternate !important;
-    box-shadow:0 0 75px rgba(255, 255, 255, 0.8) !important;
-}
-@keyframes orbThinkGlow{
-    0%{ transform:scale(0.94); opacity:0.85; }
-    100%{ transform:scale(1.04); opacity:1; }
-}
-
-/* Live Display Subtitle Box */
-.live-display-box{
-    width:100%;
-    max-width:440px;
-    min-height:92px;
-    max-height:140px;
-    background:#161616;
-    border:1px solid #282828;
-    border-radius:20px;
-    padding:14px 18px;
-    overflow-y:auto;
-    font-size:15px;
-    line-height:1.45;
-    color:#e0e0e0;
-    display:flex;
-    flex-direction:column;
-    justify-content:center;
-    text-align:center;
-    box-shadow:0 8px 24px rgba(0,0,0,0.5);
-    cursor:pointer;
-    z-index:20;
-}
-
-.status-label{
-    font-size:12px;
-    text-transform:uppercase;
-    letter-spacing:1px;
-    color:#777;
-    margin-bottom:6px;
-    font-weight:bold;
-}
-
-/* Side Menu (ChatGPT / Gemini Recents) */
-.overlay{
-    position:fixed;
-    inset:0;
-    background:rgba(0,0,0,.65);
-    backdrop-filter:blur(5px);
-    display:none;
-    z-index:90;
-}
-.overlay.show{ display:block; }
-
-.side-menu{
-    position:fixed;
-    left:0;
-    top:0;
-    bottom:0;
-    width:82%;
-    max-width:380px;
-    background:#141414;
-    transform:translateX(-100%);
-    transition:.25s cubic-bezier(0.1, 0.9, 0.2, 1);
-    z-index:100;
-    padding:30px 20px;
-    overflow-y:auto;
-    display:flex;
-    flex-direction:column;
-    gap:10px;
-}
-.side-menu.show{ transform:translateX(0); }
-
-.cyrus-title{
-    font-size:28px;
-    font-weight:bold;
-    margin-bottom:15px;
-    color:#fff;
-    padding-left:6px;
-}
-
-.menu-item{
-    display:block;
-    width:100%;
-    padding:14px 16px;
-    background:#1f1f1f;
-    color:#eee;
-    text-align:left;
-    font-size:16px;
-    border-radius:12px;
-    border:1px solid #2b2b2b;
-}
-.menu-item:active{ background:#2c2c2c; }
-
-.section-header{
-    font-size:13px;
-    text-transform:uppercase;
-    letter-spacing:1px;
-    color:#888;
-    margin:15px 0 5px 6px;
-    font-weight:bold;
-}
-
-.recents-container{
-    display:flex;
-    flex-direction:column;
-    gap:6px;
-    max-height:42vh;
-    overflow-y:auto;
-}
-
-.recent-chat-item{
-    padding:12px 14px;
-    background:#191919;
-    color:#ccc;
-    font-size:15px;
-    border-radius:10px;
-    cursor:pointer;
-    white-space:nowrap;
-    overflow:hidden;
-    text-overflow:ellipsis;
-    border:1px solid transparent;
-    transition:0.2s;
-}
-.recent-chat-item:hover, .recent-chat-item.active{
-    background:#252525;
-    color:#fff;
-    border-color:#444;
-}
-
-/* Conversation Screen */
-#conversationScreen{
-    display:none;
-    flex-direction:column;
-}
-
-.chat-header{
-    height:70px;
-    flex-shrink:0;
-    display:flex;
-    align-items:center;
-    justify-content:space-between;
-    padding:0 20px;
-    background:#181818;
-    border-bottom:1px solid #292929;
-    font-size:18px;
-    font-weight:bold;
-    z-index:20;
-}
-
-.back-button{
-    font-size:28px;
-    width:40px;
-    background:transparent;
-    color:white;
-}
-
-.messages{
-    flex:1;
-    overflow-y:auto;
-    padding:20px 16px;
-    display:flex;
-    flex-direction:column;
-    gap:12px;
-}
-
-.message{
-    max-width:82%;
-    padding:13px 16px;
-    border-radius:18px;
-    font-size:16px;
-    line-height:1.45;
-    word-wrap:break-word;
-}
-.user-message{ align-self:flex-end; background:#303030; }
-.cyrus-message{ align-self:flex-start; background:#191919; border:1px solid #262626; }
-
-.thinking-bubble{
-    align-self:flex-start;
-    background:#1f1f1f;
-    border:1px solid #3a3a3a;
-    color:#99b4ff;
-    font-style:italic;
-    animation:thinkPulse 0.9s ease-in-out infinite alternate;
-}
-@keyframes thinkPulse{
-    0%{ opacity:0.5; transform:scale(0.98); }
-    100%{ opacity:1; transform:scale(1.02); }
-}
-
-.chat-bottom{
-    padding:10px 14px 24px;
-    display:flex;
-    align-items:center;
-    gap:10px;
-    background:#000;
-}
-
-.text-box{
-    flex:1;
-    min-width:0;
-    min-height:52px;
-    border-radius:26px;
-    background:#222;
-    color:white;
-    padding:14px 20px;
-    display:flex;
-    align-items:center;
-    font-size:16px;
-    outline:none;
-}
-
-.send-button{
-    width:52px;
-    height:52px;
-    border-radius:50%;
-    background:#222;
-    color:white;
-    font-size:22px;
-}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{width:100%;height:100%;overflow:hidden;background:#000;color:#fff;font-family:Arial,sans-serif}
+button{border:0;outline:0;cursor:pointer;font-family:inherit}
+.screen{position:absolute;inset:0;background:#000}
+#voiceScreen{display:flex;flex-direction:column;align-items:center;justify-content:space-between;padding:calc(36px + env(safe-area-inset-top)) 20px calc(25px + env(safe-area-inset-bottom))}
+.top-bar{width:100%;display:flex;justify-content:space-between;align-items:center;z-index:20}
+.top-btn{width:50px;height:50px;border-radius:50%;background:#222;border:1px solid #333;color:#eee;font-size:20px;display:flex;align-items:center;justify-content:center}
+.top-btn:active{transform:scale(.92)}
+.top-btn.on{background:#1d3a73;border-color:#3a86ff}
+.hamburger{width:22px;height:16px;display:flex;flex-direction:column;justify-content:space-between;pointer-events:none}
+.hamburger span{height:3px;background:#eee;border-radius:4px}
+.orb-container{flex:1;display:flex;align-items:center;justify-content:center;width:100%}
+.orb{width:min(340px,68vw);aspect-ratio:1;border-radius:50%;cursor:pointer;
+background:radial-gradient(circle at 50% 42%,#fff 0%,#f5f6ff 27%,#e6e8ff 55%,#cbd1ff 80%,#aab5ff 100%);
+box-shadow:0 0 50px rgba(170,181,255,.3);will-change:transform,box-shadow}
+.orb.idle{animation:float 4s ease-in-out infinite alternate}
+.orb.listening{animation:listen .9s infinite alternate;box-shadow:0 0 70px rgba(58,134,255,.85)}
+.orb.thinking{animation:think .8s infinite alternate;box-shadow:0 0 75px rgba(255,255,255,.8)}
+@keyframes float{from{transform:scale(.98)}to{transform:scale(1.02)}}
+@keyframes listen{from{transform:scale(.95)}to{transform:scale(1.06)}}
+@keyframes think{from{transform:scale(.94);opacity:.85}to{transform:scale(1.04);opacity:1}}
+.live-display-box{width:100%;max-width:440px;min-height:92px;max-height:140px;background:#161616;border:1px solid #282828;border-radius:20px;padding:14px 18px;overflow-y:auto;font-size:15px;line-height:1.45;color:#e0e0e0;display:flex;flex-direction:column;justify-content:center;text-align:center;cursor:pointer}
+.status-label{font-size:12px;text-transform:uppercase;letter-spacing:1px;color:#777;margin-bottom:6px;font-weight:bold}
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.65);display:none;z-index:90}
+.overlay.show{display:block}
+.side-menu{position:fixed;left:0;top:0;bottom:0;width:82%;max-width:380px;background:#141414;transform:translateX(-100%);transition:.25s;z-index:100;padding:calc(30px + env(safe-area-inset-top)) 20px 20px;overflow-y:auto;display:flex;flex-direction:column;gap:10px}
+.side-menu.show{transform:none}
+.cyrus-title{font-size:28px;font-weight:bold;padding-left:6px;margin-bottom:10px}
+.menu-item{width:100%;padding:14px 16px;background:#1f1f1f;color:#eee;text-align:left;font-size:16px;border-radius:12px;border:1px solid #2b2b2b}
+.menu-item:active{background:#2c2c2c}
+.section-header{font-size:13px;text-transform:uppercase;letter-spacing:1px;color:#888;margin:15px 0 5px 6px;font-weight:bold}
+.recents{display:flex;flex-direction:column;gap:6px;max-height:40vh;overflow-y:auto}
+.recent{display:flex;align-items:center;gap:8px;padding:4px 4px 4px 14px;background:#191919;color:#ccc;font-size:15px;border-radius:10px;border:1px solid transparent}
+.recent.active{background:#252525;color:#fff;border-color:#444}
+.recent .t{flex:1;padding:8px 0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer}
+.recent .x{background:transparent;color:#888;font-size:18px;width:36px;height:36px}
+#conversationScreen{display:none;flex-direction:column}
+.chat-header{height:calc(70px + env(safe-area-inset-top));padding:env(safe-area-inset-top) 20px 0;flex-shrink:0;display:flex;align-items:center;justify-content:space-between;background:#181818;border-bottom:1px solid #292929;font-size:18px;font-weight:bold}
+.back-button{font-size:28px;width:40px;background:transparent;color:#fff}
+.messages{flex:1;overflow-y:auto;padding:20px 16px;display:flex;flex-direction:column;gap:12px}
+.message{max-width:82%;padding:13px 16px;border-radius:18px;font-size:16px;line-height:1.45;word-wrap:break-word;white-space:pre-wrap}
+.user-message{align-self:flex-end;background:#303030}
+.cyrus-message{align-self:flex-start;background:#191919;border:1px solid #262626}
+.thinking-bubble{align-self:flex-start;background:#1f1f1f;border:1px solid #3a3a3a;color:#99b4ff;font-style:italic;animation:tp .9s ease-in-out infinite alternate}
+@keyframes tp{from{opacity:.5;transform:scale(.98)}to{opacity:1;transform:scale(1.02)}}
+.chat-bottom{padding:10px 14px calc(14px + env(safe-area-inset-bottom));display:flex;align-items:center;gap:10px;background:#000}
+.text-box{flex:1;min-width:0;min-height:52px;max-height:120px;overflow-y:auto;border-radius:26px;background:#222;color:#fff;padding:14px 20px;font-size:16px;outline:none;user-select:text;-webkit-user-select:text}
+.text-box:empty:before{content:attr(data-ph);color:#888}
+.send-button{width:52px;height:52px;border-radius:50%;background:#222;color:#fff;font-size:22px}
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.75);display:none;align-items:center;justify-content:center;z-index:200;padding:20px}
+.modal.show{display:flex}
+.modal-card{width:100%;max-width:400px;max-height:85vh;overflow-y:auto;background:#1a1a1a;border:1px solid #333;border-radius:20px;padding:20px;display:flex;flex-direction:column;gap:12px}
+.modal-card h3{font-size:18px}
+.modal-card p{font-size:14px;color:#bbb;line-height:1.5;white-space:pre-wrap}
+.modal-card input{width:100%;padding:12px 14px;background:#0e0e0e;border:1px solid #333;border-radius:12px;color:#fff;font-size:16px;outline:none}
+.row{display:flex;gap:10px;justify-content:flex-end}
+.btn{padding:11px 18px;border-radius:12px;background:#2a2a2a;color:#fff;font-size:15px}
+.btn.primary{background:#3a86ff}
 </style>
 </head>
-
 <body>
 
-<!-- 1. MAIN VOICE SCREEN -->
 <div class="screen" id="voiceScreen">
-    <div class="top-bar">
-        <button class="top-btn menu-btn" id="openMenu">
-            <div class="hamburger">
-                <span></span><span></span><span></span>
-            </div>
-        </button>
-
-        <button class="top-btn control-btn" id="controlBtn">
-            <div class="sliders">
-                <div class="slider-line a"></div>
-                <div class="slider-line b"></div>
-                <div class="knob a"></div>
-                <div class="knob b"></div>
-            </div>
-        </button>
-    </div>
-
-    <!-- Voice Tone Reactive Orb -->
-    <div class="orb-container">
-        <div class="orb idle" id="cyrusOrb"></div>
-    </div>
-
-    <!-- Live Subtitle Box -->
-    <div class="live-display-box" id="liveDisplay">
-        <div class="status-label" id="statusLabel">CYRUS ONLINE</div>
-        <div id="liveText">Tap orb to talk with Cyrus, Boss!</div>
-    </div>
+  <div class="top-bar">
+    <button class="top-btn" id="openMenu" aria-label="Menu"><div class="hamburger"><span></span><span></span><span></span></div></button>
+    <button class="top-btn" id="handsFreeBtn" aria-label="Hands-free loop" title="Hands-free loop">🎙</button>
+  </div>
+  <div class="orb-container"><div class="orb idle" id="cyrusOrb"></div></div>
+  <div class="live-display-box" id="liveDisplay">
+    <div class="status-label" id="statusLabel">CYRUS ONLINE</div>
+    <div id="liveText">Tap orb to talk with Cyrus, Boss!</div>
+  </div>
 </div>
 
-<!-- SIDE DRAWER OVERLAY -->
 <div class="overlay" id="overlay"></div>
-
-<!-- SIDE MENU (ChatGPT / Gemini Recents) -->
 <div class="side-menu" id="sideMenu">
-    <div class="cyrus-title">CYRUS</div>
-    <button class="menu-item" id="newChatBtn">＋ New Chat</button>
-    <button class="menu-item" id="openConversationsBtn">💬 Open Conversations</button>
-    <button class="menu-item" id="memoryBtn">🧠 Memory Matrix</button>
-    <button class="menu-item" id="settingsBtn">⚙️ Settings (OpenRouter Key)</button>
-    
-    <div class="section-header">Recent Chats</div>
-    <div class="recents-container" id="recentsList"></div>
-
-    <button class="menu-item" id="aboutBtn" style="margin-top:auto;">ℹ️ About Cyrus</button>
+  <div class="cyrus-title">CYRUS</div>
+  <button class="menu-item" id="newChatBtn">＋ New Chat</button>
+  <button class="menu-item" id="openConversationsBtn">💬 Open Conversations</button>
+  <button class="menu-item" id="memoryBtn">🧠 Memory Matrix</button>
+  <button class="menu-item" id="settingsBtn">⚙️ Settings (OpenRouter Key)</button>
+  <div class="section-header">Recent Chats</div>
+  <div class="recents" id="recentsList"></div>
+  <button class="menu-item" id="aboutBtn" style="margin-top:auto">ℹ️ About Cyrus</button>
 </div>
 
-<!-- 2. CONVERSATION SCREEN -->
 <div class="screen" id="conversationScreen">
-    <div class="chat-header">
-        <button class="back-button" id="chatBack">‹</button>
-        <span id="activeChatTitle">Conversations</span>
-        <div style="width:40px;"></div>
-    </div>
-
-    <div class="messages" id="messages"></div>
-
-    <div class="chat-bottom">
-        <div class="text-box" contenteditable="true" id="textInput">Type a message...</div>
-        <button class="send-button" id="sendButton">➤</button>
-    </div>
+  <div class="chat-header">
+    <button class="back-button" id="chatBack">‹</button>
+    <span id="activeChatTitle">Conversations</span>
+    <div style="width:40px"></div>
+  </div>
+  <div class="messages" id="messages"></div>
+  <div class="chat-bottom">
+    <div class="text-box" contenteditable="true" id="textInput" data-ph="Type a message..."></div>
+    <button class="send-button" id="sendButton">➤</button>
+  </div>
 </div>
+
+<div class="modal" id="modal"><div class="modal-card" id="modalCard"></div></div>
 
 <script>
-let OPENROUTER_KEY = localStorage.getItem("CYRUS_OPENROUTER_KEY") || "";
-
-/* ========================================================
-   CHAT HISTORY ENGINE (Multi-Chat Session Storage)
-======================================================== */
-let chatHistory = JSON.parse(localStorage.getItem("CYRUS_CHAT_HISTORY")) || [];
-let currentChatId = localStorage.getItem("CYRUS_ACTIVE_CHAT_ID") || null;
-
-function saveChatHistory(){
-    localStorage.setItem("CYRUS_CHAT_HISTORY", JSON.stringify(chatHistory));
-    localStorage.setItem("CYRUS_ACTIVE_CHAT_ID", currentChatId);
-}
-
-function createNewChat(title = "New Conversation"){
-    const newChat = {
-        id: "chat_" + Date.now(),
-        title: title,
-        messages: [
-            { role: "assistant", content: "Hello Boss! 👋<br>Main Cyrus hoon. Voice Tone Reactive Orb + Full Smart Brain ready hai!" }
-        ]
-    };
-    chatHistory.unshift(newChat);
-    currentChatId = newChat.id;
-    saveChatHistory();
-    renderRecentsList();
-    loadActiveChat();
-}
-
-function getCurrentChat(){
-    let chat = chatHistory.find(c => c.id === currentChatId);
-    if(!chat){
-        if(chatHistory.length === 0){
-            createNewChat();
-            chat = chatHistory[0];
-        } else {
-            currentChatId = chatHistory[0].id;
-            chat = chatHistory[0];
-        }
-    }
-    return chat;
-}
-
-function renderRecentsList(){
-    const listEl = document.getElementById("recentsList");
-    if(!listEl) return;
-    listEl.innerHTML = "";
-    chatHistory.forEach(chat => {
-        const item = document.createElement("div");
-        item.className = "recent-chat-item" + (chat.id === currentChatId ? " active" : "");
-        item.textContent = chat.title;
-        item.addEventListener("click", () => {
-            currentChatId = chat.id;
-            saveChatHistory();
-            renderRecentsList();
-            loadActiveChat();
-            closeSideMenu();
-            voiceScreen.style.display = "none";
-            conversationScreen.style.display = "flex";
-        });
-        listEl.appendChild(item);
-    });
-}
-
-function loadActiveChat(){
-    const chat = getCurrentChat();
-    const titleEl = document.getElementById("activeChatTitle");
-    const messagesEl = document.getElementById("messages");
-    if(titleEl) titleEl.textContent = chat.title;
-    if(!messagesEl) return;
-    
-    messagesEl.innerHTML = "";
-    chat.messages.forEach(m => {
-        const d = document.createElement("div");
-        d.className = "message " + (m.role === "user" ? "user-message" : "cyrus-message");
-        d.innerHTML = m.role === "assistant" ? m.content.replace(/\n/g, '<br>') : m.content;
-        messagesEl.appendChild(d);
-    });
-    messagesEl.scrollTop = messagesEl.scrollHeight;
-}
-
-if(!currentChatId || chatHistory.length === 0){
-    createNewChat();
-} else {
-    renderRecentsList();
-    loadActiveChat();
-}
-
-/* ========================================================
-   PERSISTENT BRAIN & MEMORY MATRIX
-======================================================== */
-const defaultMemory = {
-    persona: {
-        name: "Cyrus",
-        age: 15,
-        relation: "Boss's energetic prodigy younger brother & loyal companion",
-        traits: "Pro in Market Trading (Gold/Forex/Crypto), C/Python programming, sharp Hinglish street-smart logic"
-    },
-    bossFacts: [
-        "Boss is 15 years old.",
-        "Boss lives in Balurghat, Dakshin Dinajpur, West Bengal.",
-        "Boss is deeply passionate about Trading, Coding, and Building sovereign AI applications."
-    ]
+/* ============ Helpers ============ */
+const $ = id => document.getElementById(id);
+const store = {
+  get(k, d){ try{ const v = localStorage.getItem(k); return v === null ? d : JSON.parse(v); }catch(e){ return d; } },
+  set(k, v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){} }
 };
+const CAP = window.Capacitor;
+const IS_NATIVE = !!(CAP && CAP.isNativePlatform && CAP.isNativePlatform());
+const NativeSTT = IS_NATIVE && CAP.Plugins ? CAP.Plugins.SpeechRecognition : null;   // @capacitor-community/speech-recognition
+const NativeTTS = IS_NATIVE && CAP.Plugins ? CAP.Plugins.TextToSpeech : null;        // @capacitor-community/text-to-speech
+const WebSTT = window.SpeechRecognition || window.webkitSpeechRecognition;
 
-let CyrusMemory = JSON.parse(localStorage.getItem("CYRUS_AGENT_MEMORY")) || defaultMemory;
-function saveCyrusMemory(){
-    localStorage.setItem("CYRUS_AGENT_MEMORY", JSON.stringify(CyrusMemory));
+/* ============ Elements ============ */
+const voiceScreen = $("voiceScreen"), conversationScreen = $("conversationScreen");
+const sideMenu = $("sideMenu"), overlay = $("overlay"), orb = $("cyrusOrb");
+const statusLabel = $("statusLabel"), liveText = $("liveText");
+const messagesEl = $("messages"), textInput = $("textInput");
+
+/* ============ In-app dialogs (no prompt()/alert()) ============ */
+function openModal(title, text, field, onOk, okLabel){
+  const card = $("modalCard");
+  card.innerHTML = "";
+  const h = document.createElement("h3"); h.textContent = title; card.appendChild(h);
+  if(text){ const p = document.createElement("p"); p.textContent = text; card.appendChild(p); }
+  let input = null;
+  if(field){ input = document.createElement("input"); input.type = field.type || "text"; input.placeholder = field.placeholder || ""; input.value = field.value || ""; input.autocomplete = "off"; card.appendChild(input); }
+  const row = document.createElement("div"); row.className = "row";
+  const cancel = document.createElement("button"); cancel.className = "btn"; cancel.textContent = onOk ? "Cancel" : "Close";
+  cancel.onclick = closeModal; row.appendChild(cancel);
+  if(onOk){
+    const ok = document.createElement("button"); ok.className = "btn primary"; ok.textContent = okLabel || "Save";
+    ok.onclick = () => { const v = input ? input.value.trim() : ""; closeModal(); onOk(v); };
+    row.appendChild(ok);
+  }
+  card.appendChild(row);
+  $("modal").classList.add("show");
+  if(input) setTimeout(() => input.focus(), 100);
 }
+function closeModal(){ $("modal").classList.remove("show"); }
+$("modal").addEventListener("click", e => { if(e.target.id === "modal") closeModal(); });
 
-let recognition = null;
-let isSpeaking = false;
-let audioAnimId = null;
-
-const STABLE_MODELS = [
-    "google/gemini-2.0-flash-exp:free",
-    "meta-llama/llama-3.3-70b-instruct:free",
-    "mistralai/mistral-7b-instruct:free",
-    "openrouter/free"
-];
-
-/* Elements */
-const voiceScreen = document.getElementById("voiceScreen");
-const conversationScreen = document.getElementById("conversationScreen");
-const openMenu = document.getElementById("openMenu");
-const sideMenu = document.getElementById("sideMenu");
-const overlay = document.getElementById("overlay");
-const newChatBtn = document.getElementById("newChatBtn");
-const openConversationsBtn = document.getElementById("openConversationsBtn");
-const chatBack = document.getElementById("chatBack");
-const sendButton = document.getElementById("sendButton");
-const textInput = document.getElementById("textInput");
-const messages = document.getElementById("messages");
-const cyrusOrb = document.getElementById("cyrusOrb");
-const controlBtn = document.getElementById("controlBtn");
-const settingsBtn = document.getElementById("settingsBtn");
-const memoryBtn = document.getElementById("memoryBtn");
-const aboutBtn = document.getElementById("aboutBtn");
-const statusLabel = document.getElementById("statusLabel");
-const liveText = document.getElementById("liveText");
-const liveDisplay = document.getElementById("liveDisplay");
-
-function closeSideMenu(){
-    sideMenu.classList.remove("show");
-    overlay.classList.remove("show");
-}
-
-function openSideMenu(){
-    sideMenu.classList.add("show");
-    overlay.classList.add("show");
-}
-
-/* Button Listeners */
-openMenu.addEventListener("click", openSideMenu);
-overlay.addEventListener("click", closeSideMenu);
-
-newChatBtn.addEventListener("click", () => {
-    createNewChat();
-    closeSideMenu();
-    voiceScreen.style.display = "none";
-    conversationScreen.style.display = "flex";
-});
-
-openConversationsBtn.addEventListener("click", () => {
-    closeSideMenu();
-    voiceScreen.style.display = "none";
-    conversationScreen.style.display = "flex";
-});
-
-liveDisplay.addEventListener("click", () => {
-    voiceScreen.style.display = "none";
-    conversationScreen.style.display = "flex";
-});
-
-chatBack.addEventListener("click", () => {
-    conversationScreen.style.display = "none";
-    voiceScreen.style.display = "flex";
-});
-
+/* ============ API key ============ */
+let OPENROUTER_KEY = store.get("CYRUS_OPENROUTER_KEY", "") || "";
 function promptApiKey(){
-    const inputKey = prompt("Boss, apni OpenRouter Key paste kijiye:", OPENROUTER_KEY);
-    if(inputKey !== null){
-        OPENROUTER_KEY = inputKey.trim();
-        localStorage.setItem("CYRUS_OPENROUTER_KEY", OPENROUTER_KEY);
-        alert("Key saved successfully Boss!");
-    }
-}
-controlBtn.addEventListener("click", promptApiKey);
-settingsBtn.addEventListener("click", () => {
-    closeSideMenu();
-    promptApiKey();
-});
-
-memoryBtn.addEventListener("click", () => {
-    closeSideMenu();
-    const factsList = CyrusMemory.bossFacts.map((f, i) => `${i+1}.${f}`).join("\n");
-    const newFact = prompt(`🧠 Cyrus Active Memory Matrix:\n\n${factsList}\n\nBoss, koi naya fact add karna hai toh yahan likhiye:`);
-    if(newFact && newFact.trim() !== ""){
-        CyrusMemory.bossFacts.push(newFact.trim());
-        saveCyrusMemory();
-        alert("Boss, naya fact permanently lock ho gaya!");
-    }
-});
-
-aboutBtn.addEventListener("click", () => {
-    closeSideMenu();
-    alert("Cyrus Sovereign AI Voice Companion\nHands-Free Voice + Reactive Audio Orb + Persistent Memory.");
-});
-
-/* Voice Tone Dynamic Reaction */
-function startVoiceOrbReaction(){
-    let baseTime = 0;
-    cyrusOrb.classList.remove("idle", "thinking");
-
-    function animateWave(){
-        if(!isSpeaking){
-            cancelAnimationFrame(audioAnimId);
-            cyrusOrb.style.transform = "scale(1)";
-            cyrusOrb.style.boxShadow = "0 0 50px rgba(170, 181, 255, 0.3)";
-            cyrusOrb.classList.add("idle");
-            return;
-        }
-        baseTime += 0.12;
-        const pitchWave = Math.sin(baseTime * 2.2) * 0.04;
-        const bassWave = Math.cos(baseTime * 3.8) * 0.03;
-        const dynamicScale = 1.0 + pitchWave + bassWave;
-        const dynamicGlow = 45 + Math.abs(pitchWave + bassWave) * 350;
-
-        cyrusOrb.style.transform = `scale(${dynamicScale.toFixed(3)})`;
-        cyrusOrb.style.boxShadow = `0 0 ${dynamicGlow.toFixed(0)}px rgba(170, 181, 255, 0.7)`;
-
-        audioAnimId = requestAnimationFrame(animateWave);
-    }
-    animateWave();
+  openModal("OpenRouter Key", "Boss, apni OpenRouter key paste kijiye. Sirf is device me save hoti hai.",
+    { value: OPENROUTER_KEY, placeholder: "sk-or-v1-..." },
+    v => { OPENROUTER_KEY = v; store.set("CYRUS_OPENROUTER_KEY", v); setStatus("CYRUS ONLINE", v ? "Key saved. Tap orb to talk!" : "Key removed."); });
 }
 
-function speakVoice(text){
-    return new Promise((resolve) => {
-        if(!('speechSynthesis' in window)){ resolve(); return; }
+/* ============ Chat history ============ */
+let chatHistory = store.get("CYRUS_CHAT_HISTORY", []);
+if(!Array.isArray(chatHistory)) chatHistory = [];
+let currentChatId = store.get("CYRUS_ACTIVE_CHAT_ID", null);
+const GREETING = "Hello Boss! 👋\nMain Cyrus hoon. Voice Tone Reactive Orb + Full Smart Brain ready hai!";
+function saveChatHistory(){ store.set("CYRUS_CHAT_HISTORY", chatHistory); store.set("CYRUS_ACTIVE_CHAT_ID", currentChatId); }
+
+function createNewChat(){
+  const c = { id: "chat_" + Date.now(), title: "New Conversation", messages: [{ role: "assistant", content: GREETING }] };
+  chatHistory.unshift(c); currentChatId = c.id;
+  saveChatHistory(); renderRecents(); loadActiveChat();
+}
+function getCurrentChat(){
+  let c = chatHistory.find(x => x.id === currentChatId);
+  if(!c){
+    if(!chatHistory.length){ createNewChat(); return chatHistory[0]; }
+    c = chatHistory[0]; currentChatId = c.id;
+  }
+  return c;
+}
+function showChat(){ voiceScreen.style.display = "none"; conversationScreen.style.display = "flex"; messagesEl.scrollTop = messagesEl.scrollHeight; }
+function showVoice(){ conversationScreen.style.display = "none"; voiceScreen.style.display = "flex"; }
+
+function renderRecents(){
+  const list = $("recentsList"); list.innerHTML = "";
+  chatHistory.forEach(chat => {
+    const item = document.createElement("div");
+    item.className = "recent" + (chat.id === currentChatId ? " active" : "");
+    const t = document.createElement("div"); t.className = "t"; t.textContent = chat.title;
+    t.onclick = () => { currentChatId = chat.id; saveChatHistory(); renderRecents(); loadActiveChat(); closeSideMenu(); showChat(); };
+    const x = document.createElement("button"); x.className = "x"; x.textContent = "✕"; x.setAttribute("aria-label", "Delete chat");
+    x.onclick = () => openModal("Delete chat?", "\"" + chat.title + "\" permanently delete ho jayegi.", null, () => {
+      chatHistory = chatHistory.filter(c => c.id !== chat.id);
+      if(!chatHistory.length) createNewChat(); else { if(currentChatId === chat.id) currentChatId = chatHistory[0].id; saveChatHistory(); renderRecents(); loadActiveChat(); }
+    }, "Delete");
+    item.append(t, x); list.appendChild(item);
+  });
+}
+function bubble(role, text){
+  const d = document.createElement("div");
+  d.className = "message " + (role === "user" ? "user-message" : "cyrus-message");
+  d.textContent = text; messagesEl.appendChild(d);
+  messagesEl.scrollTop = messagesEl.scrollHeight; return d;
+}
+function loadActiveChat(){
+  const chat = getCurrentChat();
+  $("activeChatTitle").textContent = chat.title;
+  messagesEl.innerHTML = "";
+  chat.messages.forEach(m => bubble(m.role, String(m.content).replace(/<br\s*\/?>/gi, "\n")));
+}
+function autoTitle(chat, text){
+  if(chat.title === "New Conversation"){
+    chat.title = text.length > 25 ? text.slice(0, 25) + "..." : text;
+    $("activeChatTitle").textContent = chat.title; renderRecents();
+  }
+}
+
+/* ============ Memory ============ */
+const defaultMemory = {
+  persona: { name: "Cyrus", traits: "Pro in Market Trading (Gold/Forex/Crypto), C/Python programming, sharp Hinglish street-smart logic" },
+  bossFacts: [
+    "Boss is 15 years old.",
+    "Boss lives in Balurghat, Dakshin Dinajpur, West Bengal.",
+    "Boss is deeply passionate about Trading, Coding, and Building sovereign AI applications."
+  ]
+};
+let Mem = store.get("CYRUS_AGENT_MEMORY", null) || defaultMemory;
+if(!Mem.bossFacts) Mem = defaultMemory;
+function saveMem(){ store.set("CYRUS_AGENT_MEMORY", Mem); }
+
+/* ============ Orb / status ============ */
+let state = "idle", isSpeaking = false, animId = null, handsFree = store.get("CYRUS_HANDSFREE", false);
+function setStatus(label, text){ statusLabel.textContent = label; if(text !== undefined) liveText.textContent = text; }
+function setState(s){
+  state = s;
+  orb.classList.remove("idle", "listening", "thinking");
+  if(s !== "speaking"){ cancelAnimationFrame(animId); orb.style.transform = ""; orb.style.boxShadow = ""; }
+  if(s === "idle" || s === "listening" || s === "thinking") orb.classList.add(s);
+  if(s === "speaking") startOrbWave();
+}
+function startOrbWave(){
+  let t = 0; cancelAnimationFrame(animId);
+  (function loop(){
+    if(state !== "speaking") return;
+    t += 0.12;
+    const w = Math.sin(t * 2.2) * 0.04 + Math.cos(t * 3.8) * 0.03;
+    orb.style.transform = "scale(" + (1 + w).toFixed(3) + ")";
+    orb.style.boxShadow = "0 0 " + (45 + Math.abs(w) * 350).toFixed(0) + "px rgba(170,181,255,.7)";
+    animId = requestAnimationFrame(loop);
+  })();
+}
+function updateHandsFreeBtn(){ $("handsFreeBtn").classList.toggle("on", handsFree); }
+
+/* ============ Text to speech (native first, WebView fallback) ============ */
+function cleanForSpeech(t){
+  return String(t).replace(/```[\s\S]*?```/g, " code block ").replace(/https?:\/\/\S+/g, " link ")
+    .replace(/[*#_`~>|]/g, "").replace(/[\u{1F000}-\u{1FFFF}\u{2600}-\u{27BF}\u{FE0F}]/gu, "").replace(/\s+/g, " ").trim();
+}
+async function speakVoice(raw){
+  const text = cleanForSpeech(raw);
+  if(!text) return;
+  isSpeaking = true; setState("speaking"); setStatus("CYRUS SPEAKING...", raw);
+  try{
+    if(NativeTTS){
+      await NativeTTS.speak({ text: text.slice(0, 3500), lang: "hi-IN", rate: 1.0, pitch: 1.1, volume: 1.0, category: "ambient" });
+    } else if("speechSynthesis" in window){
+      await new Promise(res => {
         window.speechSynthesis.cancel();
-
-        const utterance = new SpeechSynthesisUtterance(text);
-        utterance.rate = 1.02;
-        utterance.pitch = 1.12;
-
-        isSpeaking = true;
-        statusLabel.textContent = "CYRUS SPEAKING...";
-        liveText.textContent = text;
-        startVoiceOrbReaction();
-
-        utterance.onend = () => {
-            isSpeaking = false;
-            statusLabel.textContent = "CYRUS ONLINE";
-            resolve();
-        };
-        utterance.onerror = () => {
-            isSpeaking = false;
-            statusLabel.textContent = "CYRUS ONLINE";
-            resolve();
-        };
-        window.speechSynthesis.speak(utterance);
-    });
+        const u = new SpeechSynthesisUtterance(text); u.lang = "hi-IN"; u.rate = 1.02; u.pitch = 1.12;
+        u.onend = u.onerror = () => res();
+        window.speechSynthesis.speak(u);
+      });
+    } else { await new Promise(r => setTimeout(r, Math.min(4000, text.length * 40))); }
+  }catch(e){ /* TTS failure must never block the app */ }
+  const wasStopped = !isSpeaking;
+  isSpeaking = false;
+  if(state === "speaking") setState("idle");
+  setStatus("CYRUS ONLINE", "Tap orb to talk with Cyrus, Boss!");
+  if(handsFree && !wasStopped && voiceScreen.style.display !== "none") setTimeout(startListening, 400);
+}
+function stopSpeaking(){
+  isSpeaking = false;
+  try{ if(NativeTTS) NativeTTS.stop(); }catch(e){}
+  try{ if("speechSynthesis" in window) window.speechSynthesis.cancel(); }catch(e){}
+  setState("idle"); setStatus("CYRUS ONLINE", "Tap orb to talk with Cyrus, Boss!");
 }
 
-/* ========================================================
-   HANDS-FREE SPEECH RECOGNITION (No Browser Prompt Popup)
-======================================================== */
-const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+/* ============ Speech recognition ============ */
+let listening = false, lastPartial = "", finished = true, silenceTimer = null, hardTimer = null, webRec = null, nativeBound = false;
 
-if(SpeechRecognition){
-    try {
-        recognition = new SpeechRecognition();
-        recognition.continuous = false;
-        recognition.interimResults = false;
-        recognition.lang = 'hi-IN';
+function clearTimers(){ clearTimeout(silenceTimer); clearTimeout(hardTimer); }
+function finishListening(){
+  if(finished) return;
+  finished = true; listening = false; clearTimers();
+  const text = lastPartial.trim(); lastPartial = "";
+  if(text){
+    setStatus("YOU SAID:", "\"" + text + "\"");
+    askCyrusBrain(text);
+  } else {
+    setState("idle"); setStatus("CYRUS ONLINE", "Kuch sunai nahi diya. Orb tap karke phir boliye, Boss!");
+  }
+}
+function armSilence(ms){ clearTimeout(silenceTimer); silenceTimer = setTimeout(stopListening, ms); }
+async function stopListening(){
+  if(finished) return;
+  try{
+    if(NativeSTT) await NativeSTT.stop();
+    else if(webRec) webRec.stop();
+  }catch(e){}
+  setTimeout(finishListening, 350);   // safety net if the 'stopped' event never arrives
+}
+function bindNativeListeners(){
+  if(nativeBound || !NativeSTT) return;
+  nativeBound = true;
+  NativeSTT.addListener("partialResults", d => {
+    const m = d && d.matches && d.matches[0];
+    if(m){ lastPartial = m; liveText.textContent = "\"" + m + "\""; armSilence(1800); }
+  });
+  NativeSTT.addListener("listeningState", d => { if(d && d.status === "stopped") finishListening(); });
+}
+function micError(msg){
+  finished = true; listening = false; clearTimers(); setState("idle");
+  setStatus("MIC NOTE", msg);
+}
+async function startListening(){
+  if(listening || state === "thinking") return;
+  if(!OPENROUTER_KEY){ promptApiKey(); return; }
+  if(isSpeaking) stopSpeaking();
 
-        recognition.onstart = () => {
-            cyrusOrb.classList.remove("idle", "thinking");
-            cyrusOrb.classList.add("listening");
-            statusLabel.textContent = "LISTENING TO BOSS...";
-            liveText.textContent = "Sun raha hoon Boss, boliye...";
-        };
+  if(NativeSTT){
+    try{
+      const av = await NativeSTT.available();
+      if(av && av.available === false) return micError("Is phone me speech recognition (Google app) available nahi hai.");
+      let p = await NativeSTT.checkPermissions();
+      if(!p || p.speechRecognition !== "granted") p = await NativeSTT.requestPermissions();
+      if(!p || p.speechRecognition !== "granted") return micError("Mic permission chahiye. Settings > Apps > Cyrus > Permissions me Microphone allow kijiye.");
+      bindNativeListeners();
+      lastPartial = ""; finished = false; listening = true;
+      setState("listening"); setStatus("LISTENING TO BOSS...", "Sun raha hoon Boss, boliye...");
+      hardTimer = setTimeout(stopListening, 20000);
+      armSilence(6000);   // no speech at all
+      const r = await NativeSTT.start({ language: "hi-IN", maxResults: 1, prompt: "Boliye", partialResults: true, popup: false });
+      if(r && r.matches && r.matches[0]){ lastPartial = r.matches[0]; finishListening(); }
+    }catch(e){ micError("Mic start nahi hua: " + ((e && e.message) || e)); }
+    return;
+  }
 
-        recognition.onresult = (event) => {
-            const spokenText = event.results[0][0].transcript;
-            cyrusOrb.classList.remove("listening");
-            statusLabel.textContent = "YOU SAID:";
-            liveText.textContent = `"${spokenText}"`;
-            askCyrusBrain(spokenText);
-        };
-
-        recognition.onerror = (e) => {
-            cyrusOrb.classList.remove("listening");
-            cyrusOrb.classList.add("idle");
-            statusLabel.textContent = "CYRUS ONLINE";
-            if(e.error !== 'no-speech'){
-                liveText.textContent = "Mic note: " + e.error;
-            } else {
-                liveText.textContent = "Tap orb to talk with Cyrus, Boss!";
-            }
-        };
-
-        recognition.onend = () => {
-            cyrusOrb.classList.remove("listening");
-            if(!cyrusOrb.classList.contains("thinking") && !isSpeaking){
-                cyrusOrb.classList.add("idle");
-            }
-        };
-    } catch(err) {
-        recognition = null;
-    }
+  if(WebSTT){
+    try{
+      webRec = new WebSTT(); webRec.lang = "hi-IN"; webRec.continuous = false; webRec.interimResults = true;
+      lastPartial = ""; finished = false; listening = true;
+      webRec.onstart = () => { setState("listening"); setStatus("LISTENING TO BOSS...", "Sun raha hoon Boss, boliye..."); };
+      webRec.onresult = ev => {
+        let t = ""; for(let i = 0; i < ev.results.length; i++) t += ev.results[i][0].transcript;
+        lastPartial = t; liveText.textContent = "\"" + t + "\"";
+      };
+      webRec.onerror = ev => { if(ev.error === "no-speech" || ev.error === "aborted") finishListening(); else micError("Mic error: " + ev.error); };
+      webRec.onend = () => finishListening();
+      webRec.start();
+    }catch(e){ micError("Mic start nahi hua: " + e.message); }
+    return;
+  }
+  setStatus("CYRUS ONLINE", "Voice input yahan available nahi. Chat me type kijiye.");
+  showChat();
 }
 
-cyrusOrb.addEventListener("click", () => {
-    if(!OPENROUTER_KEY){
-        promptApiKey();
-        return;
-    }
-    if(isSpeaking || ('speechSynthesis' in window && window.speechSynthesis.speaking)){
-        window.speechSynthesis.cancel();
-        isSpeaking = false;
-        cyrusOrb.className = "orb idle";
-        statusLabel.textContent = "CYRUS ONLINE";
-        liveText.textContent = "Tap orb to talk with Cyrus, Boss!";
-        return;
-    }
-    if(recognition){
-        try{
-            recognition.start();
-        }catch(err){
-            try {
-                recognition.stop();
-                setTimeout(() => {
-                    try { recognition.start(); } catch(e) {}
-                }, 150);
-            } catch(e) {}
-        }
-    } else {
-        voiceScreen.style.display = "none";
-        conversationScreen.style.display = "flex";
-    }
+orb.addEventListener("click", () => {
+  if(listening){ stopListening(); return; }
+  if(isSpeaking || state === "speaking"){ stopSpeaking(); return; }
+  startListening();
+});
+$("handsFreeBtn").addEventListener("click", () => {
+  handsFree = !handsFree; store.set("CYRUS_HANDSFREE", handsFree); updateHandsFreeBtn();
+  setStatus("CYRUS ONLINE", handsFree ? "Hands-free ON: Cyrus bolne ke baad khud sunega." : "Hands-free OFF: har baar orb tap kijiye.");
 });
 
-/* ========================================================
-   CYRUS BRAIN ENGINE (Safe & Persistent Thinking State)
-======================================================== */
-async function fetchSafeCyrusBrain(cleanKey, SYSTEM_PROMPT, activeMessages){
-    for(let model of STABLE_MODELS){
-        try{
-            const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-                method: "POST",
-                headers: {
-                    "Authorization": `Bearer ${cleanKey}`,
-                    "Content-Type": "application/json",
-                    "HTTP-Referer": window.location.origin || "http://localhost",
-                    "X-Title": "Cyrus Voice"
-                },
-                body: JSON.stringify({
-                    model: model,
-                    messages: [
-                        { role: "system", content: SYSTEM_PROMPT },
-                        ...activeMessages
-                    ],
-                    max_tokens: 700,
-                    temperature: 0.7
-                })
-            });
+/* ============ Brain (OpenRouter) ============ */
+const MODELS = [
+  "openrouter/free",
+  "google/gemini-2.0-flash-exp:free",
+  "meta-llama/llama-3.3-70b-instruct:free",
+  "mistralai/mistral-7b-instruct:free"
+];
+const BAD_REPLY = /^\s*(user safety|safety|safe|unsafe|moderation|flagged|blocked)\b/i;
 
-            const data = await response.json();
-            const text = data.choices?.[0]?.message?.content;
-
-            if(text && !text.toLowerCase().startsWith("user safety:")){
-                return text;
-            }
-        }catch(e){
-            continue;
-        }
+async function fetchBrain(key, system, msgs){
+  let lastErr = "";
+  for(const model of MODELS){
+    for(let attempt = 0; attempt < 2; attempt++){
+      try{
+        const ctrl = new AbortController(); const to = setTimeout(() => ctrl.abort(), 30000);
+        const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+          method: "POST", signal: ctrl.signal,
+          headers: { "Authorization": "Bearer " + key, "Content-Type": "application/json", "HTTP-Referer": "https://cyrus.local", "X-Title": "Cyrus Voice" },
+          body: JSON.stringify({ model, messages: [{ role: "system", content: system }, ...msgs], max_tokens: 700, temperature: 0.7 })
+        });
+        clearTimeout(to);
+        if(res.status === 401 || res.status === 403) throw new Error("AUTH");
+        const data = await res.json().catch(() => ({}));
+        let text = data && data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content;
+        if(Array.isArray(text)) text = text.map(p => p.text || "").join("");
+        if(text && text.trim().length > 1 && !BAD_REPLY.test(text)) return text.trim();
+        lastErr = (data && data.error && data.error.message) || "empty reply";
+        if(res.status === 429) await new Promise(r => setTimeout(r, 800));
+        else break;   // empty/odd reply: move on to next model
+      }catch(e){
+        if(e.message === "AUTH") throw new Error("OpenRouter key galat ya expire hai, Boss. Settings me check kijiye.");
+        lastErr = e.message;
+        if(e.name !== "AbortError") break;
+      }
     }
-    throw new Error("Free models busy right now Boss, retry in a second!");
+  }
+  throw new Error("Free models abhi busy hain Boss, thodi der me phir try kijiye. (" + lastErr + ")");
+}
+
+let busy = false;
+function localAnswer(q){
+  const now = new Date();
+  const time = now.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: true });
+  const date = now.toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" });
+  if(/\b(time|samay|ghadi)\b/i.test(q) && q.split(/\s+/).length <= 6) return "Boss, abhi exact time " + time + " ho raha hai!";
+  if(/\b(date|tarikh|tareekh)\b/i.test(q) && q.split(/\s+/).length <= 6) return "Boss, aaj ki tarikh hai " + date + "!";
+  return null;
+}
+function pushPair(chat, userText, reply){
+  chat.messages.push({ role: "user", content: userText }, { role: "assistant", content: reply });
+  autoTitle(chat, userText); saveChatHistory(); loadActiveChat();
 }
 
 async function askCyrusBrain(userText){
-    const cleanKey = (OPENROUTER_KEY || "").trim();
-    const qLower = userText.toLowerCase().trim();
+  if(busy) return;
+  const chat = getCurrentChat();
+  const q = userText.toLowerCase().trim();
 
-    const now = new Date();
-    const currentTimeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
-    const currentDateStr = now.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+  const local = localAnswer(q);
+  if(local){ pushPair(chat, userText, local); await speakVoice(local); return; }
 
-    if(qLower.includes("time") || qLower.includes("samay") || qLower.includes("ghadi")){
-        const reply = `Boss, abhi exact time ${currentTimeStr} ho raha hai!`;
-        appendAndSave(userText, reply);
-        await speakVoice(reply);
-        return;
+  if(/^(yaad rakhna|note karlo)/i.test(q)){
+    const fact = userText.replace(/yaad rakhna|note karlo/gi, "").trim();
+    if(fact){
+      Mem.bossFacts.push(fact); saveMem();
+      const r = "Bilkul Boss! Maine permanent memory me lock kar liya: \"" + fact + "\"";
+      pushPair(chat, userText, r); await speakVoice(r); return;
     }
-    if(qLower.includes("date") || qLower.includes("tarikh") || qLower.includes("din")){
-        const reply = `Boss, aaj ki tarikh hai ${currentDateStr}!`;
-        appendAndSave(userText, reply);
-        await speakVoice(reply);
-        return;
-    }
+  }
 
-    if(qLower.startsWith("yaad rakhna") || qLower.startsWith("note karlo")){
-        const learned = userText.replace(/yaad rakhna|note karlo/gi, '').trim();
-        if(learned){
-            CyrusMemory.bossFacts.push(learned);
-            saveCyrusMemory();
-            const reply = `Bilkul Boss! Maine permanent memory me lock kar liya: "${learned}"`;
-            appendAndSave(userText, reply);
-            await speakVoice(reply);
-            return;
-        }
-    }
+  const key = (OPENROUTER_KEY || "").trim();
+  if(!key){ promptApiKey(); return; }
 
-    if(!cleanKey){
-        appendCyrasMessage("Boss, pehle Settings me OpenRouter Key save kijiye!");
-        promptApiKey();
-        return;
-    }
+  busy = true;
+  setState("thinking"); setStatus("CYRUS THINKING...", "Cyrus thinking... 💭");
+  autoTitle(chat, userText);
+  chat.messages.push({ role: "user", content: userText }); saveChatHistory();
+  bubble("user", userText);
+  const think = bubble("assistant", "Cyrus thinking... 💭");
+  think.className = "message thinking-bubble";
 
-    // 1. Orb screen par thinking state
-    cyrusOrb.className = "orb thinking";
-    statusLabel.textContent = "CYRUS THINKING...";
-    liveText.textContent = "Cyrus thinking... 💭";
+  const now = new Date();
+  const system = "You are " + Mem.persona.name + ", a 15-year-old sovereign AI companion and younger brother to 'Boss'. " + Mem.persona.traits + ".\n" +
+    "Current Context: Today is " + now.toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" }) +
+    ", local device time is " + now.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: true }) + ".\n" +
+    "Permanent Memory about Boss:\n" + Mem.bossFacts.map(f => "- " + f).join("\n") + "\n" +
+    "Behavior Rules: Talk in energetic, natural Hindi/Hinglish. Call user 'Boss'. Never output moderation or safety labels. Keep voice replies concise (under 120 words) unless Boss asks for detail.";
 
-    const chat = getCurrentChat();
-
-    // 2. Chat history title update
-    if(chat.messages.length <= 1 && chat.title === "New Conversation"){
-        chat.title = userText.length > 25 ? userText.substring(0, 25) + "..." : userText;
-        const titleEl = document.getElementById("activeChatTitle");
-        if(titleEl) titleEl.textContent = chat.title;
-        renderRecentsList();
-    }
-
-    // 3. User message ko active chat memory me push karein
-    chat.messages.push({ role: "user", content: userText });
-    saveChatHistory();
-
-    // 4. Chat UI me user message append karein bina clear kiye
-    appendUserMessage(userText);
-
-    // 5. Chat screen par Thinking bubble dikhayein
-    const chatThinkingBubble = document.createElement("div");
-    chatThinkingBubble.className = "message thinking-bubble";
-    chatThinkingBubble.innerHTML = "Cyrus thinking... 💭";
-    messages.appendChild(chatThinkingBubble);
-    messages.scrollTop = messages.scrollHeight;
-
-    const SYSTEM_PROMPT = `You are ${CyrusMemory.persona.name}, a 15-year-old sovereign AI companion and younger brother to 'Boss'.${CyrusMemory.persona.traits}
-Current Context: Today is ${currentDateStr}, and local device time is${currentTimeStr}.
-Permanent Memory about Boss:
-${CyrusMemory.bossFacts.map(f => "- " + f).join("\n")}
-Behavior Rules: Talk in energetic, natural Hindi/Hinglish. Call user 'Boss'. Never output moderation or safety labels. Provide thorough answers.`;
-
-    try{
-        const reply = await fetchSafeCyrusBrain(cleanKey, SYSTEM_PROMPT, chat.messages.slice(-6));
-
-        // Jawab aate hi thinking bubble hatayein
-        if(chatThinkingBubble.parentNode) chatThinkingBubble.remove();
-        cyrusOrb.className = "orb";
-
-        chat.messages.push({ role: "assistant", content: reply });
-        saveChatHistory();
-        
-        appendCyrasMessage(reply);
-        const cleanSpeech = reply.replace(/[*#_`]/g, '').trim();
-        await speakVoice(cleanSpeech);
-
-    }catch(err){
-        if(chatThinkingBubble.parentNode) chatThinkingBubble.remove();
-        cyrusOrb.className = "orb idle";
-        statusLabel.textContent = "ENGINE NOTE";
-        liveText.textContent = err.message;
-        appendCyrasMessage("Engine Note: " + err.message);
-    }
+  const history = chat.messages.filter(m => m.content !== GREETING).slice(-8).map(m => ({ role: m.role, content: String(m.content) }));
+  let reply = null;
+  try{
+    reply = await fetchBrain(key, system, history);
+    chat.messages.push({ role: "assistant", content: reply }); saveChatHistory();
+    think.remove(); bubble("assistant", reply);
+  }catch(err){
+    think.remove(); bubble("assistant", "Engine Note: " + err.message);
+    setState("idle"); setStatus("ENGINE NOTE", err.message);
+  }
+  busy = false;
+  if(reply) await speakVoice(reply);
 }
 
-function appendAndSave(userText, replyText){
-    const chat = getCurrentChat();
-    chat.messages.push({ role: "user", content: userText });
-    chat.messages.push({ role: "assistant", content: replyText });
-    if(chat.title === "New Conversation"){
-        chat.title = userText.length > 25 ? userText.substring(0, 25) + "..." : userText;
-        const titleEl = document.getElementById("activeChatTitle");
-        if(titleEl) titleEl.textContent = chat.title;
-        renderRecentsList();
-    }
-    saveChatHistory();
-    loadActiveChat();
-}
-
-function appendUserMessage(text){
-    const d = document.createElement("div");
-    d.className = "message user-message";
-    d.textContent = text;
-    messages.appendChild(d);
-    messages.scrollTop = messages.scrollHeight;
-}
-
-function appendCyrasMessage(text){
-    const d = document.createElement("div");
-    d.className = "message cyrus-message";
-    d.innerHTML = text.replace(/\n/g, '<br>');
-    messages.appendChild(d);
-    messages.scrollTop = messages.scrollHeight;
-}
-
-sendButton.addEventListener("click", () => {
-    const text = textInput.innerText.trim();
-    if(text === "" || text === "Type a message...") return;
-
-    textInput.innerText = "";
-    askCyrusBrain(text);
+/* ============ UI wiring ============ */
+function closeSideMenu(){ sideMenu.classList.remove("show"); overlay.classList.remove("show"); }
+$("openMenu").addEventListener("click", () => { sideMenu.classList.add("show"); overlay.classList.add("show"); });
+overlay.addEventListener("click", closeSideMenu);
+$("newChatBtn").addEventListener("click", () => { createNewChat(); closeSideMenu(); showChat(); });
+$("openConversationsBtn").addEventListener("click", () => { closeSideMenu(); showChat(); });
+$("liveDisplay").addEventListener("click", showChat);
+$("chatBack").addEventListener("click", showVoice);
+$("settingsBtn").addEventListener("click", () => { closeSideMenu(); promptApiKey(); });
+$("aboutBtn").addEventListener("click", () => { closeSideMenu(); openModal("About Cyrus", "Cyrus Sovereign AI Voice Companion\nNative voice input + reactive orb + persistent memory.\nVoice engine: " + (NativeSTT ? "Android native" : WebSTT ? "Web Speech API" : "unavailable")); });
+$("memoryBtn").addEventListener("click", () => {
+  closeSideMenu();
+  const list = Mem.bossFacts.map((f, i) => (i + 1) + ". " + f).join("\n");
+  openModal("🧠 Memory Matrix", list + "\n\nNaya fact add kijiye:", { placeholder: "e.g. Boss ko Gold trading pasand hai" },
+    v => { if(v){ Mem.bossFacts.push(v); saveMem(); setStatus("CYRUS ONLINE", "Naya fact permanently lock ho gaya!"); } });
 });
 
-textInput.addEventListener("focus", () => {
-    if(textInput.innerText === "Type a message..."){
-        textInput.innerText = "";
-    }
-});
+function sendTyped(){
+  const text = textInput.innerText.trim();
+  if(!text) return;
+  textInput.innerText = "";
+  if(isSpeaking) stopSpeaking();
+  askCyrusBrain(text);
+}
+$("sendButton").addEventListener("click", sendTyped);
+textInput.addEventListener("keydown", e => { if(e.key === "Enter" && !e.shiftKey){ e.preventDefault(); sendTyped(); } });
 
-textInput.addEventListener("keydown", (e) => {
-    if(e.key === "Enter" && !e.shiftKey){
-        e.preventDefault();
-        sendButton.click();
-    }
-});
+document.addEventListener("visibilitychange", () => { if(document.hidden){ if(listening) stopListening(); if(isSpeaking) stopSpeaking(); } });
+
+/* ============ Boot ============ */
+updateHandsFreeBtn();
+if(!currentChatId || !chatHistory.length) createNewChat(); else { renderRecents(); loadActiveChat(); }
+setState("idle");
 </script>
-
 </body>
 </html>
