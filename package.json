@@ -1,15 +1,15 @@
 {
-  "name": "cyrus-ai",
+  "name": "cyrus-voice",
   "version": "1.0.0",
-  "description": "Cyrus Voice AI Agent",
+  "description": "Cyrus Voice Assistant",
+  "main": "index.html",
   "scripts": {
     "build": "echo 'Build complete'"
   },
   "dependencies": {
+    "@capacitor/android": "^6.0.0",
     "@capacitor/core": "^6.0.0",
-    "@capacitor/android": "^6.0.0"
-  },
-  "devDependencies": {
-    "@capacitor/cli": "^6.0.0"
+    "@capacitor-community/speech-recognition": "^6.0.0",
+    "@capacitor-community/text-to-speech": "^6.0.0"
   }
 }
