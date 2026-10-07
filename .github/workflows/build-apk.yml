@@ -36,6 +36,7 @@ jobs:
 
       - name: Initialize Android Project
         run: |
+          npm install -g @capacitor/cli
           npx cap add android || true
           npx cap sync android
 
