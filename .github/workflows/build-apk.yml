@@ -32,16 +32,21 @@ jobs:
           fi
 
       - name: Install Dependencies
-        run: npm install
+        run: npm install --legacy-peer-deps
 
       - name: Initialize Android Project
         run: |
           npx cap add android || true
           npx cap sync android
 
-      - name: Add Permissions to AndroidManifest
+      - name: Add Permissions and Queries to AndroidManifest
         run: |
-          sed -i '/<application/i <uses-permission android:name="android.permission.RECORD_AUDIO" />\n<uses-permission android:name="android.permission.INTERNET" />' android/app/src/main/AndroidManifest.xml
+          MANIFEST="android/app/src/main/AndroidManifest.xml"
+          if [ -f "$MANIFEST" ]; then
+            sed -i '/<application/i <uses-permission android:name="android.permission.RECORD_AUDIO" />' $MANIFEST
+            sed -i '/<application/i <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />' $MANIFEST
+            sed -i '/<application/i <queries><intent><action android:name="android.speech.RecognitionService" /></intent></queries>' $MANIFEST
+          fi
 
       - name: Build Debug APK
         run: |
